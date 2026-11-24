@@ -11,7 +11,9 @@ import '../sources/releases.dart' show releasesRepo;
 import '../state/settings.dart';
 import '../state/updates.dart';
 
-const _scripts = 'https://raw.githubusercontent.com/$releasesRepo/main';
+/// Where the install scripts come from: main. A test build can point at a
+/// branch: `--dart-define=DECK_SCRIPTS=https://raw.githubusercontent.com/<repo>/<branch>`.
+const _scripts = String.fromEnvironment('DECK_SCRIPTS', defaultValue: 'https://raw.githubusercontent.com/$releasesRepo/main');
 
 /// Starts the update to [version] ("0.2.0") and completes with the script's
 /// exit code. On success the script quits this app first, so a code that
