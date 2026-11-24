@@ -118,6 +118,12 @@ void main() {
       );
     });
 
+    test('closes nothing when the listing is whole pages, as Gmail may have cut it off', () {
+      final full = {for (var i = 0; i < 50; i++) 't$i'};
+      expect(leftInbox([mail('a', 'fyi')], full, later), isEmpty);
+      expect(leftInbox([mail('a', 'fyi')], full.skip(1).toSet(), later), ['mail:a']);
+    });
+
     test('keeps mail that came in after the inbox was listed', () {
       expect(leftInbox([mail('a', 'fyi', at: later)], {}, _now), isEmpty);
     });

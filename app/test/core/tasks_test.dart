@@ -30,6 +30,13 @@ void main() {
     });
   }
 
+  test('mail searches day by day, at most yesterday and today, as Gmail stops at 50 threads per search', () {
+    List<Object?> queries(DateTime? since) => taskFor('mail', const ProviderConfig(), since, DateTime(2026, 11, 3, 9))!.task.input['queries']! as List;
+    expect(queries(DateTime(2026, 11, 3, 8)), ['in:inbox after:2026/11/03 before:2026/11/04']);
+    expect(queries(DateTime(2026, 10, 31, 18)), ['in:inbox after:2026/11/02 before:2026/11/03', 'in:inbox after:2026/11/03 before:2026/11/04']);
+    expect(queries(null), hasLength(2));
+  });
+
   test('slack searches project channels for team asks, and Jira for an existing ticket', () {
     const ps = [
       ProjectConfig(id: 'vpn', name: 'VPN', board: 'jira:OM', channels: ['#vpn-apps', 'abp-vpn']),

@@ -156,14 +156,17 @@ TaskSpec? taskFor(
       );
     case 'mail':
       final q = cfg.options['query'] ?? 'in:inbox';
-      // First fetch looks back two weeks, so the inbox gets sorted once.
-      final mailFrom = since ?? now.subtract(const Duration(days: 14));
+      // Gmail gives at most 50 threads per search and no next page, so one search per day.
+      // shortcut: days before yesterday are skipped: 3 working days run close to the 5 minute timeout. Raise it with the timeout.
+      final cap = now.subtract(const Duration(days: 1));
+      final first = since == null || since.isBefore(cap) ? cap : since;
+      String day(DateTime d) => _date(d).replaceAll('-', '/');
       return TaskSpec(
         DeckTask(
           id: id,
           kind: 'fetch',
           instructions:
-              'Call the Gmail search_threads tool with the query in input.query and pageSize 50. While it returns a nextPageToken, call it '
+              'Call the Gmail search_threads tool once per query in input.queries, with pageSize 50. While it returns a nextPageToken, call it '
               'again with that pageToken. $newer'
               'Judge each thread from its sender, subject and snippet only; call the Gmail get_thread tool only to check whether the user already replied to an ask, or when search_threads gave no date. '
               'Submit one record per thread: id (thread id), url (viewUrl, else "https://mail.google.com/mail/u/0/#all/<thread id>"), '
@@ -181,7 +184,10 @@ TaskSpec? taskFor(
               'For an ask, set about the same way when it is mainly about one Jira ticket or merge request; leave it out otherwise. '
               '$onBoard${recheck}Submit all records in one call.',
           input: {
-            'query': '$q after:${_date(mailFrom).replaceAll('-', '/')}',
+            'queries': [
+              for (var d = DateTime(first.year, first.month, first.day); !d.isAfter(now); d = DateTime(d.year, d.month, d.day + 1))
+                '$q after:${day(d)} before:${day(DateTime(d.year, d.month, d.day + 1))}',
+            ],
             if (open.isNotEmpty) 'open': open,
             if (known.isNotEmpty) 'projects': known,
             if (boardCards.isNotEmpty) 'cards': boardCards,

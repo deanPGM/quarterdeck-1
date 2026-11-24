@@ -148,11 +148,15 @@ DeckCard noiseCard(MessageRecord m, DeckCard? group) {
 /// Keys of the FYI and noise mail cards whose threads all left the [inbox]
 /// (you archived them in Gmail). Asks stay: archiving does not answer them.
 /// Only cards last updated before [listedAt], so mail that came in after the
-/// inbox was listed is not closed.
-List<String> leftInbox(Iterable<DeckCard> cards, Set<String> inbox, DateTime listedAt) => [
-  for (final c in cards)
-    if ((c.kind == 'fyi' || c.kind == 'noise') && c.threads.isNotEmpty && !c.threads.any(inbox.contains) && (c.updatedAt?.isBefore(listedAt) ?? true)) c.key,
-];
+/// inbox was listed is not closed. A listing of whole pages of 50 may be cut
+/// off (Gmail gives no next page past 50 threads): it closes nothing.
+List<String> leftInbox(Iterable<DeckCard> cards, Set<String> inbox, DateTime listedAt) => inbox.isNotEmpty && inbox.length % 50 == 0
+    ? const []
+    : [
+        for (final c in cards)
+          if ((c.kind == 'fyi' || c.kind == 'noise') && c.threads.isNotEmpty && !c.threads.any(inbox.contains) && (c.updatedAt?.isBefore(listedAt) ?? true))
+            c.key,
+      ];
 
 /// Merges fresh message records into the open cards. A card whose record now
 /// says done is kept and returned in `replied`, so the caller closes it. A
