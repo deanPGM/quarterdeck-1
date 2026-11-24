@@ -1,6 +1,6 @@
 // Notifications over every screen: the meeting ringing, the tools background
-// sessions ask for, and sessions that just ended float top right; the bell
-// next to the Terminals pill opens the list of all of them.
+// sessions ask for, a newer Quarterdeck, and sessions that just ended float
+// top right; the bell next to the Terminals pill opens the list of all of them.
 import 'dart:convert';
 
 import 'package:clock/clock.dart';
@@ -8,12 +8,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../actions/updater.dart';
 import '../../core/meetings.dart';
 import '../../core/tool_rules.dart';
 import '../../state/alarms.dart';
 import '../../state/board.dart';
 import '../../state/notices.dart';
 import '../../state/settings.dart';
+import '../../state/updates.dart';
+import '../../sources/chrome.dart';
 import '../board/meeting_strip.dart';
 import '../theme.dart';
 
@@ -29,6 +32,7 @@ class NoticeLayer extends ConsumerWidget {
     final ringing = ref.watch(ringingProvider);
     final asks = ref.watch(boardProvider.select((b) => b.value?.asks ?? const <PermissionAsk>[]));
     final notices = ref.watch(noticesProvider);
+    final update = ref.watch(updatesProvider);
     final n = ref.read(noticesProvider.notifier);
     void go(String? route) {
       n.setOpen(false);
@@ -80,6 +84,18 @@ class NoticeLayer extends ConsumerWidget {
                 ),
               ],
             ),
+          ),
+        ),
+      if (update.offer)
+        _Toast(
+          child: UpdateToast(
+            version: update.available!.version,
+            current: update.current,
+            step: update.step,
+            error: update.error,
+            onUpdate: () => updateNow(ref),
+            onLater: ref.read(updatesProvider.notifier).dismiss,
+            onNotes: () => openLink(Uri.parse(update.available!.url), ref.read(settingsProvider).value?.actions.browserProfile),
           ),
         ),
       for (final x in notices.all.where((x) => notices.toasts.contains(x.id)))
@@ -216,6 +232,83 @@ class _PermissionToastState extends State<PermissionToast> {
                 FilledButton(onPressed: () => rule.text.trim().isEmpty ? null : widget.onAlways(rule.text.trim()), child: const Text('Save')),
               ],
             ),
+        ],
+      ),
+    );
+  }
+}
+
+/// A newer Quarterdeck is out: Update runs the install script, which quits
+/// this app and opens the new one.
+class UpdateToast extends StatelessWidget {
+  const UpdateToast({
+    super.key,
+    required this.version,
+    required this.current,
+    required this.step,
+    this.error,
+    required this.onUpdate,
+    required this.onLater,
+    required this.onNotes,
+  });
+
+  final String version, current;
+  final UpdateStep step;
+  final String? error;
+  final VoidCallback onUpdate, onLater, onNotes;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final installing = step == UpdateStep.installing, failed = step == UpdateStep.failed;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      color: (failed ? c.red : c.blue).withValues(alpha: .10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(failed ? Icons.error_outline_rounded : Icons.system_update_alt_rounded, color: failed ? c.red : c.blue, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  installing
+                      ? 'Updating to Quarterdeck $version…'
+                      : failed
+                      ? 'The update to $version failed'
+                      : 'Quarterdeck $version is available',
+                  style: context.t.titleSmall,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            installing
+                ? 'Quarterdeck quits and opens the new version by itself.'
+                : failed
+                ? error ?? 'Try again, or run the install command from the README.'
+                : 'You have $current.',
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+            style: context.t.bodySmall?.copyWith(color: c.label2),
+          ),
+          if (installing) ...[
+            const SizedBox(height: 10),
+            const LinearProgressIndicator(minHeight: 3),
+          ] else ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                TextButton(onPressed: onNotes, child: const Text('What\'s New')),
+                const Spacer(),
+                TextButton(onPressed: onLater, child: const Text('Later')),
+                const SizedBox(width: 4),
+                FilledButton(onPressed: onUpdate, child: Text(failed ? 'Try Again' : 'Update')),
+              ],
+            ),
+          ],
         ],
       ),
     );

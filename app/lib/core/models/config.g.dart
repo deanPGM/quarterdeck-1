@@ -108,6 +108,7 @@ _DeckConfig _$DeckConfigFromJson(Map<String, dynamic> json) => _DeckConfig(
   claude: json['claude'] == null ? const ClaudeConfig() : ClaudeConfig.fromJson(json['claude'] as Map<String, dynamic>),
   actions: json['actions'] == null ? const ActionsConfig() : ActionsConfig.fromJson(json['actions'] as Map<String, dynamic>),
   gitBackup: json['gitBackup'] as bool? ?? true,
+  checkUpdates: json['checkUpdates'] as bool? ?? true,
 );
 
 Map<String, dynamic> _$DeckConfigToJson(_DeckConfig instance) => <String, dynamic>{
@@ -116,4 +117,5 @@ Map<String, dynamic> _$DeckConfigToJson(_DeckConfig instance) => <String, dynami
   'claude': instance.claude.toJson(),
   'actions': instance.actions.toJson(),
   'gitBackup': instance.gitBackup,
+  'checkUpdates': instance.checkUpdates,
 };

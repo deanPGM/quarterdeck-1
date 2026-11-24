@@ -9,6 +9,7 @@ import 'package:go_router/go_router.dart';
 import 'package:path/path.dart' as p;
 
 import '../../actions/launcher.dart';
+import '../../actions/updater.dart';
 import '../../core/models/claude_run.dart';
 import '../../core/models/config.dart';
 import '../../core/meetings.dart' show clockTime;
@@ -21,6 +22,7 @@ import '../../state/forges.dart';
 import '../../state/project_info.dart';
 import '../../state/settings.dart';
 import '../../state/terminals.dart';
+import '../../state/updates.dart';
 import '../project/project_logo.dart';
 import '../common.dart';
 import '../parts.dart';
@@ -164,10 +166,13 @@ class GeneralPane extends ConsumerWidget {
     final cfg = ref.watch(settingsProvider).requireValue;
     final home = ref.watch(homeProvider);
     final save = ref.read(settingsProvider.notifier).save;
+    final update = ref.watch(updatesProvider);
+    final next = update.available;
+    final updates = ref.read(updatesProvider.notifier);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _title(context, 'General', 'Where Quarterdeck keeps its data, and how your Claude sessions reach it.'),
+        _title(context, 'General', 'Where Quarterdeck keeps its data, how your Claude sessions reach it, and updates.'),
         SettingsGroup(
           title: 'Storage',
           footer: 'deck.json holds these settings. state/ holds your pins, snoozes, notes and todos. cache/ holds fetched data and can be deleted.',
@@ -215,6 +220,36 @@ class GeneralPane extends ConsumerWidget {
                     },
                   ),
                 ],
+              ),
+            ),
+          ],
+        ),
+        SettingsGroup(
+          title: 'Updates',
+          footer:
+              'Updates come from github.com/paillardf/quarterdeck releases. Update runs the install script, which quits Quarterdeck and opens the new version.',
+          children: [
+            SettingsRow(
+              label: update.dev ? 'Version: built from source' : 'Version ${update.current}',
+              description: switch (update) {
+                _ when update.dev => 'This build does not update itself: pull and rebuild.',
+                UpdateState(step: UpdateStep.checking) => 'Checking…',
+                UpdateState(step: UpdateStep.installing) => 'Updating to ${next?.version}…',
+                UpdateState(:final error?) => error,
+                _ when next != null => 'Quarterdeck ${next.version} is available.',
+                UpdateState(:final checkedAt?) => 'Up to date. Checked at ${clockTime(checkedAt)}.',
+                _ => 'Not checked yet.',
+              },
+              trailing: next != null
+                  ? FilledButton(onPressed: update.step == UpdateStep.installing ? null : () => updateNow(ref), child: Text('Update to ${next.version}'))
+                  : OutlinedButton(onPressed: update.dev || update.step == UpdateStep.checking ? null : updates.check, child: const Text('Check Now')),
+            ),
+            SettingsRow(
+              label: 'Check for updates',
+              description: 'Look for a new release at start and once a day.',
+              trailing: Switch(
+                value: cfg.checkUpdates,
+                onChanged: (v) => save(cfg.copyWith(checkUpdates: v)),
               ),
             ),
           ],

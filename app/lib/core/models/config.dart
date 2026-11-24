@@ -149,6 +149,9 @@ abstract class DeckConfig with _$DeckConfig {
 
     /// Commit state changes to the git repo in the Deck folder.
     @Default(true) bool gitBackup,
+
+    /// Look for a newer release on GitHub at start and once a day.
+    @Default(true) bool checkUpdates,
   }) = _DeckConfig;
 
   factory DeckConfig.fromJson(Map<String, Object?> json) => _$DeckConfigFromJson(json);

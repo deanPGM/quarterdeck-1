@@ -8,6 +8,8 @@
 #   QUARTERDECK_VERSION=v0.1.0   install that release instead of the latest
 #   QUARTERDECK_YES=1            answer yes to every question
 #   QUARTERDECK_NO_LAUNCH=1      do not open the app at the end
+#   QUARTERDECK_APP_ONLY=1       only install the app: no setup (Quarterdeck's
+#                                Update button sets it, with QUARTERDECK_PID)
 set -eu
 
 REPO="paillardf/quarterdeck"
@@ -35,6 +37,36 @@ ask() {
 
 fetch() {
   curl -fL --progress-bar -o "$2" "$BASE/$1" || die "Could not download $BASE/$1"
+  verify "$1" "$2"
+}
+
+# Checks a download against the release's SHA256SUMS. Releases before it
+# existed are installed with a warning.
+verify() {
+  if ! curl -fsSL -o "$tmp/SHA256SUMS" "$BASE/SHA256SUMS" 2>/dev/null; then
+    warn "This release has no SHA256SUMS: download not verified"
+    return
+  fi
+  want=$(awk -v f="$1" '$2 == f || $2 == "*" f {print $1}' "$tmp/SHA256SUMS")
+  [ -n "$want" ] || die "$1 is not listed in the release's SHA256SUMS"
+  if has sha256sum; then got=$(sha256sum "$2" | awk '{print $1}'); else got=$(shasum -a 256 "$2" | awk '{print $1}'); fi
+  [ "$got" = "$want" ] || die "Checksum mismatch for $1: the download is damaged or was changed"
+  ok "Checksum verified"
+}
+
+# Waits up to 10 seconds for process $1 to end.
+gone() {
+  i=0
+  while kill -0 "$1" 2>/dev/null && [ $i -lt 20 ]; do sleep 0.5; i=$((i + 1)); done
+  ! kill -0 "$1" 2>/dev/null
+}
+
+# The app that started an update (QUARTERDECK_PID): asked to quit, then ended.
+quit_pid() {
+  [ -n "${QUARTERDECK_PID:-}" ] && kill -0 "$QUARTERDECK_PID" 2>/dev/null || return 1
+  "$@" >/dev/null 2>&1 || kill "$QUARTERDECK_PID" 2>/dev/null || true
+  gone "$QUARTERDECK_PID" || kill -9 "$QUARTERDECK_PID" 2>/dev/null || true
+  ok "Quit the running Quarterdeck"
 }
 
 tmp=$(mktemp -d)
@@ -48,8 +80,11 @@ install_macos() {
   [ -w "$apps" ] || { apps="$HOME/Applications"; mkdir -p "$apps"; }
   app="$apps/Quarterdeck.app"
 
-  if pgrep -f "Quarterdeck.app/Contents/MacOS/Quarterdeck" >/dev/null 2>&1; then
-    osascript -e 'tell application id "io.github.paillardf.quarterdeck" to quit' >/dev/null 2>&1 || true
+  quit_app() { osascript -e 'tell application id "io.github.paillardf.quarterdeck" to quit'; }
+  if quit_pid quit_app; then
+    :
+  elif pgrep -f "Quarterdeck.app/Contents/MacOS/Quarterdeck" >/dev/null 2>&1; then
+    quit_app >/dev/null 2>&1 || true
     sleep 2
     pkill -f "Quarterdeck.app/Contents/MacOS/Quarterdeck" 2>/dev/null || true
     ok "Quit the running Quarterdeck"
@@ -75,7 +110,10 @@ install_linux() {
   dest="$data/quarterdeck"
   bin="$HOME/.local/bin"
 
-  pkill -f "$dest/deck" 2>/dev/null && ok "Quit the running Quarterdeck" || true
+  # Started from the app menu ($dest/deck) or the 'quarterdeck' link.
+  if ! quit_pid kill "${QUARTERDECK_PID:-}"; then
+    { pkill -f "$dest/deck" || pkill -x quarterdeck; } 2>/dev/null && ok "Quit the running Quarterdeck" || true
+  fi
   rm -rf "$dest"
   mkdir -p "$dest" "$bin" "$data/applications"
   tar -xzf "$tmp/q.tar.gz" -C "$dest"
@@ -150,17 +188,19 @@ case "$(uname -s)" in
   *) die "Use install.ps1 on Windows: irm https://raw.githubusercontent.com/$REPO/main/install.ps1 | iex" ;;
 esac
 
-say "Setting up what Quarterdeck uses"
-setup_claude
-setup_cli gh "GitHub pull requests, reviews and issues" gh
-setup_cli glab "GitLab merge requests, reviews and issues" glab
+if [ -z "${QUARTERDECK_APP_ONLY:-}" ]; then
+  say "Setting up what Quarterdeck uses"
+  setup_claude
+  setup_cli gh "GitHub pull requests, reviews and issues" gh
+  setup_cli glab "GitLab merge requests, reviews and issues" glab
 
-say "Last steps"
-echo "  1. Slack, Mail, Calendar and Jira use your claude.ai connectors. Connect the"
-echo "     ones you want at https://claude.ai/settings/connectors (Slack, Gmail,"
-echo "     Google Calendar, Atlassian)."
-echo "  2. In Quarterdeck: Settings › Providers, turn on what you use, then"
-echo "     Settings › Projects, add your project folders."
+  say "Last steps"
+  echo "  1. Slack, Mail, Calendar and Jira use your claude.ai connectors. Connect the"
+  echo "     ones you want at https://claude.ai/settings/connectors (Slack, Gmail,"
+  echo "     Google Calendar, Atlassian)."
+  echo "  2. In Quarterdeck: Settings › Providers, turn on what you use, then"
+  echo "     Settings › Projects, add your project folders."
+fi
 
 if [ -z "${QUARTERDECK_NO_LAUNCH:-}" ]; then
   if [ "$(uname -s)" = Darwin ] || [ -n "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ]; then

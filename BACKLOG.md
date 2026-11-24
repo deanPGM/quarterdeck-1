@@ -166,13 +166,11 @@ offer Claude Code, the `deck` MCP server, `gh` and `glab` with their logins.
    Claude runs, what they read, cost, budget) that the user accepts, then
    which of `claude`, `glab`, `gh` are found and logged in, and whether port
    4777 is free (`onPath` exists).
-4. **Update card.** On start and once a day, read
-   `api.github.com/repos/paillardf/quarterdeck/releases/latest` (no token on a
-   public repo); a newer tag than the running version shows a card with the
-   notes and an Update button. The button starts the install script detached
-   with an app-only flag (no setup questions), and the app quits: the script
-   replaces it and opens the new one. Add a `SHA256SUMS` release asset that
-   the scripts check.
+4. **Update check, after the first update ships.** Built on
+   `feat/auto-update` (see DESIGN.md, "Updates in one click"). Left: release
+   a version with it, then a newer one, and update for real on macOS, Linux
+   and Windows; the scripts' app-only mode and PID quit were only tested in
+   pieces.
 5. **Homebrew tap.** `paillardf/homebrew-tap`, `brew install --cask
    paillardf/tap/quarterdeck`, updated by the release workflow.
 6. **Linux and Windows gaps.** Alarm chime and bring to front use `afplay`

@@ -396,7 +396,7 @@ final class ReviewsProvider extends $NotifierProvider<Reviews, ReviewsState> {
   }
 }
 
-String _$reviewsHash() => r'35ba133d0159c3db1198f03cb0a246b3cd4b2298';
+String _$reviewsHash() => r'0d055698d695ff4968b984880f18da2ecdf757c7';
 
 abstract class _$Reviews extends $Notifier<ReviewsState> {
   ReviewsState build();

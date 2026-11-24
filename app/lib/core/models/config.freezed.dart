@@ -1304,7 +1304,8 @@ as String,
 mixin _$DeckConfig {
 
  Map<String, ProviderConfig> get providers; List<ProjectConfig> get projects; ClaudeConfig get claude; ActionsConfig get actions;/// Commit state changes to the git repo in the Deck folder.
- bool get gitBackup;
+ bool get gitBackup;/// Look for a newer release on GitHub at start and once a day.
+ bool get checkUpdates;
 /// Create a copy of DeckConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -1318,20 +1319,20 @@ $DeckConfigCopyWith<DeckConfig> get copyWith => _$DeckConfigCopyWithImpl<DeckCon
 @override
 bool operator ==(Object other) {
   final _this = this as DeckConfig;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is DeckConfig&&const DeepCollectionEquality().equals(other.providers, _this.providers)&&const DeepCollectionEquality().equals(other.projects, _this.projects)&&(identical(other.claude, _this.claude) || other.claude == _this.claude)&&(identical(other.actions, _this.actions) || other.actions == _this.actions)&&(identical(other.gitBackup, _this.gitBackup) || other.gitBackup == _this.gitBackup));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is DeckConfig&&const DeepCollectionEquality().equals(other.providers, _this.providers)&&const DeepCollectionEquality().equals(other.projects, _this.projects)&&(identical(other.claude, _this.claude) || other.claude == _this.claude)&&(identical(other.actions, _this.actions) || other.actions == _this.actions)&&(identical(other.gitBackup, _this.gitBackup) || other.gitBackup == _this.gitBackup)&&(identical(other.checkUpdates, _this.checkUpdates) || other.checkUpdates == _this.checkUpdates));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as DeckConfig;
-  return Object.hash(runtimeType,const DeepCollectionEquality().hash(_this.providers),const DeepCollectionEquality().hash(_this.projects),_this.claude,_this.actions,_this.gitBackup);
+  return Object.hash(runtimeType,const DeepCollectionEquality().hash(_this.providers),const DeepCollectionEquality().hash(_this.projects),_this.claude,_this.actions,_this.gitBackup,_this.checkUpdates);
 }
 
 @override
 String toString() {
   final _this = this as DeckConfig;
-  return 'DeckConfig(providers: ${_this.providers}, projects: ${_this.projects}, claude: ${_this.claude}, actions: ${_this.actions}, gitBackup: ${_this.gitBackup})';
+  return 'DeckConfig(providers: ${_this.providers}, projects: ${_this.projects}, claude: ${_this.claude}, actions: ${_this.actions}, gitBackup: ${_this.gitBackup}, checkUpdates: ${_this.checkUpdates})';
 }
 
 
@@ -1342,7 +1343,7 @@ abstract mixin class $DeckConfigCopyWith<$Res>  {
   factory $DeckConfigCopyWith(DeckConfig value, $Res Function(DeckConfig) _then) = _$DeckConfigCopyWithImpl;
 @useResult
 $Res call({
- Map<String, ProviderConfig> providers, List<ProjectConfig> projects, ClaudeConfig claude, ActionsConfig actions, bool gitBackup
+ Map<String, ProviderConfig> providers, List<ProjectConfig> projects, ClaudeConfig claude, ActionsConfig actions, bool gitBackup, bool checkUpdates
 });
 
 
@@ -1359,13 +1360,14 @@ class _$DeckConfigCopyWithImpl<$Res>
 
 /// Create a copy of DeckConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? providers = null,Object? projects = null,Object? claude = null,Object? actions = null,Object? gitBackup = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? providers = null,Object? projects = null,Object? claude = null,Object? actions = null,Object? gitBackup = null,Object? checkUpdates = null,}) {
   return _then(DeckConfig(
 providers: null == providers ? _self.providers : providers // ignore: cast_nullable_to_non_nullable
 as Map<String, ProviderConfig>,projects: null == projects ? _self.projects : projects // ignore: cast_nullable_to_non_nullable
 as List<ProjectConfig>,claude: null == claude ? _self.claude : claude // ignore: cast_nullable_to_non_nullable
 as ClaudeConfig,actions: null == actions ? _self.actions : actions // ignore: cast_nullable_to_non_nullable
 as ActionsConfig,gitBackup: null == gitBackup ? _self.gitBackup : gitBackup // ignore: cast_nullable_to_non_nullable
+as bool,checkUpdates: null == checkUpdates ? _self.checkUpdates : checkUpdates // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }
@@ -1469,10 +1471,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Map<String, ProviderConfig> providers,  List<ProjectConfig> projects,  ClaudeConfig claude,  ActionsConfig actions,  bool gitBackup)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( Map<String, ProviderConfig> providers,  List<ProjectConfig> projects,  ClaudeConfig claude,  ActionsConfig actions,  bool gitBackup,  bool checkUpdates)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _DeckConfig() when $default != null:
-return $default(_that.providers,_that.projects,_that.claude,_that.actions,_that.gitBackup);case _:
+return $default(_that.providers,_that.projects,_that.claude,_that.actions,_that.gitBackup,_that.checkUpdates);case _:
   return orElse();
 
 }
@@ -1490,10 +1492,10 @@ return $default(_that.providers,_that.projects,_that.claude,_that.actions,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Map<String, ProviderConfig> providers,  List<ProjectConfig> projects,  ClaudeConfig claude,  ActionsConfig actions,  bool gitBackup)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( Map<String, ProviderConfig> providers,  List<ProjectConfig> projects,  ClaudeConfig claude,  ActionsConfig actions,  bool gitBackup,  bool checkUpdates)  $default,) {final _that = this;
 switch (_that) {
 case _DeckConfig():
-return $default(_that.providers,_that.projects,_that.claude,_that.actions,_that.gitBackup);case _:
+return $default(_that.providers,_that.projects,_that.claude,_that.actions,_that.gitBackup,_that.checkUpdates);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -1510,10 +1512,10 @@ return $default(_that.providers,_that.projects,_that.claude,_that.actions,_that.
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Map<String, ProviderConfig> providers,  List<ProjectConfig> projects,  ClaudeConfig claude,  ActionsConfig actions,  bool gitBackup)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( Map<String, ProviderConfig> providers,  List<ProjectConfig> projects,  ClaudeConfig claude,  ActionsConfig actions,  bool gitBackup,  bool checkUpdates)?  $default,) {final _that = this;
 switch (_that) {
 case _DeckConfig() when $default != null:
-return $default(_that.providers,_that.projects,_that.claude,_that.actions,_that.gitBackup);case _:
+return $default(_that.providers,_that.projects,_that.claude,_that.actions,_that.gitBackup,_that.checkUpdates);case _:
   return null;
 
 }
@@ -1525,7 +1527,7 @@ return $default(_that.providers,_that.projects,_that.claude,_that.actions,_that.
 @JsonSerializable()
 
 class _DeckConfig implements DeckConfig {
-  const _DeckConfig({ Map<String, ProviderConfig> providers = const {},  List<ProjectConfig> projects = const [], this.claude = const ClaudeConfig(), this.actions = const ActionsConfig(), this.gitBackup = true}): _providers = providers,_projects = projects;
+  const _DeckConfig({ Map<String, ProviderConfig> providers = const {},  List<ProjectConfig> projects = const [], this.claude = const ClaudeConfig(), this.actions = const ActionsConfig(), this.gitBackup = true, this.checkUpdates = true}): _providers = providers,_projects = projects;
   factory _DeckConfig.fromJson(Map<String, dynamic> json) => _$DeckConfigFromJson(json);
 
  final  Map<String, ProviderConfig> _providers;
@@ -1546,6 +1548,8 @@ class _DeckConfig implements DeckConfig {
 @override@JsonKey() final  ActionsConfig actions;
 /// Commit state changes to the git repo in the Deck folder.
 @override@JsonKey() final  bool gitBackup;
+/// Look for a newer release on GitHub at start and once a day.
+@override@JsonKey() final  bool checkUpdates;
 
 /// Create a copy of DeckConfig
 /// with the given fields replaced by the non-null parameter values.
@@ -1560,18 +1564,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _DeckConfig&&const DeepCollectionEquality().equals(other.providers, _providers)&&const DeepCollectionEquality().equals(other.projects, _projects)&&(identical(other.claude, claude) || other.claude == claude)&&(identical(other.actions, actions) || other.actions == actions)&&(identical(other.gitBackup, gitBackup) || other.gitBackup == gitBackup));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _DeckConfig&&const DeepCollectionEquality().equals(other.providers, _providers)&&const DeepCollectionEquality().equals(other.projects, _projects)&&(identical(other.claude, claude) || other.claude == claude)&&(identical(other.actions, actions) || other.actions == actions)&&(identical(other.gitBackup, gitBackup) || other.gitBackup == gitBackup)&&(identical(other.checkUpdates, checkUpdates) || other.checkUpdates == checkUpdates));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_providers),const DeepCollectionEquality().hash(_projects),claude,actions,gitBackup);
+    return Object.hash(runtimeType,const DeepCollectionEquality().hash(_providers),const DeepCollectionEquality().hash(_projects),claude,actions,gitBackup,checkUpdates);
 }
 
 @override
 String toString() {
-    return 'DeckConfig(providers: $providers, projects: $projects, claude: $claude, actions: $actions, gitBackup: $gitBackup)';
+    return 'DeckConfig(providers: $providers, projects: $projects, claude: $claude, actions: $actions, gitBackup: $gitBackup, checkUpdates: $checkUpdates)';
 }
 
 
@@ -1582,7 +1586,7 @@ abstract mixin class _$DeckConfigCopyWith<$Res> implements $DeckConfigCopyWith<$
   factory _$DeckConfigCopyWith(_DeckConfig value, $Res Function(_DeckConfig) _then) = __$DeckConfigCopyWithImpl;
 @override @useResult
 $Res call({
- Map<String, ProviderConfig> providers, List<ProjectConfig> projects, ClaudeConfig claude, ActionsConfig actions, bool gitBackup
+ Map<String, ProviderConfig> providers, List<ProjectConfig> projects, ClaudeConfig claude, ActionsConfig actions, bool gitBackup, bool checkUpdates
 });
 
 
@@ -1599,13 +1603,14 @@ class __$DeckConfigCopyWithImpl<$Res>
 
 /// Create a copy of DeckConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? providers = null,Object? projects = null,Object? claude = null,Object? actions = null,Object? gitBackup = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? providers = null,Object? projects = null,Object? claude = null,Object? actions = null,Object? gitBackup = null,Object? checkUpdates = null,}) {
   return _then(_DeckConfig(
 providers: null == providers ? _self._providers : providers // ignore: cast_nullable_to_non_nullable
 as Map<String, ProviderConfig>,projects: null == projects ? _self._projects : projects // ignore: cast_nullable_to_non_nullable
 as List<ProjectConfig>,claude: null == claude ? _self.claude : claude // ignore: cast_nullable_to_non_nullable
 as ClaudeConfig,actions: null == actions ? _self.actions : actions // ignore: cast_nullable_to_non_nullable
 as ActionsConfig,gitBackup: null == gitBackup ? _self.gitBackup : gitBackup // ignore: cast_nullable_to_non_nullable
+as bool,checkUpdates: null == checkUpdates ? _self.checkUpdates : checkUpdates // ignore: cast_nullable_to_non_nullable
 as bool,
   ));
 }

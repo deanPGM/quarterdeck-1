@@ -8,6 +8,7 @@ import 'package:deck/main.dart';
 import 'package:deck/state/board.dart';
 import 'package:deck/state/notices.dart';
 import 'package:deck/state/terminals.dart';
+import 'package:deck/state/updates.dart';
 import 'package:deck/ui/terminals/terminal_panel.dart';
 import 'package:deck/ui/board/filter_field.dart';
 import 'package:flutter/gestures.dart';
@@ -35,6 +36,7 @@ void main() {
     Size size = const Size(1440, 900),
     BoardState Function(BoardState)? board,
     NoticesState Function()? notices,
+    UpdateState? update,
     double ratio = 1,
     String dir = 'goldens',
   }) => withClock(Clock.fixed(DateTime(2026, 10, 15, 9, 30)), () async {
@@ -51,6 +53,7 @@ void main() {
           board == null ? sampleBoard() : board(sampleBoard()),
           ringing: ringing ? sampleBoard().snapshots['calendar']!.events[1] : null,
           notices: notices == null ? const NoticesState() : notices(),
+          update: update,
         ),
         child: const DeckApp(),
       ),
@@ -167,6 +170,16 @@ void main() {
       ),
     ),
   );
+  testWidgets('notices, update available', (t) => shot(t, 'notices_update', update: sampleUpdate(latest: '0.2.0')));
+  testWidgets(
+    'notices, update failed, dark',
+    (t) => shot(
+      t,
+      'notices_update_failed_dark',
+      brightness: Brightness.dark,
+      update: sampleUpdate(latest: '0.2.0', step: UpdateStep.failed, error: 'Could not download the release. Details in ~/.deck/cache/update.log'),
+    ),
+  );
   testWidgets('notices, the panel', (t) => shot(t, 'notices_panel', notices: () => sampleNotices(open: true)));
   testWidgets('notices, dark', (t) => shot(t, 'notices_panel_dark', brightness: Brightness.dark, notices: () => sampleNotices(open: true)));
   testWidgets(
@@ -277,6 +290,15 @@ void main() {
   }
 
   testWidgets('settings, general', (t) => shot(t, 'settings_general', go: (t) => openSettings(t)));
+  testWidgets(
+    'settings, general, update available',
+    (t) => shot(
+      t,
+      'settings_general_update',
+      update: sampleUpdate(latest: '0.2.0'),
+      go: (t) => openSettings(t),
+    ),
+  );
   testWidgets('settings, gitlab', (t) => shot(t, 'settings_gitlab', go: (t) => openSettings(t, 'GitLab')));
   testWidgets('settings, slack', (t) => shot(t, 'settings_slack', go: (t) => openSettings(t, 'Slack')));
   testWidgets('settings, project', (t) => shot(t, 'settings_project', size: const Size(1440, 1200), go: (t) => openSettings(t, 'VPN iOS')));

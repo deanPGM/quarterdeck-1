@@ -210,6 +210,23 @@ comments already posted) through `glab mr update` or a note edit scoped to
 that merge request; new comments still go out only with Publish. Tradeoff:
 those edits are live at once, with no preview.
 
+**Updates in one click (2026-11-24).** A minute after start and once a day
+(Settings > General > Updates can turn it off), Deck reads the latest GitHub
+release (`sources/releases.dart`, no token) and compares it with the version
+the release workflow built in (`--dart-define=DECK_VERSION`; a local build is
+"dev" and never offers one). A newer one floats over every screen with What's
+New, Later (until a newer release) and Update. Update runs the same
+`install.sh` / `install.ps1` a first install uses, pinned to that version, in
+app-only mode (no setup questions), with `QUARTERDECK_PID`: the script
+downloads the build, checks it against the release's `SHA256SUMS`, quits Deck
+(asked first, killed after 10 s), replaces it and opens the new one. Output
+goes to `cache/update.log`; if the script ends while Deck still runs, the
+notice says it failed and where to look. Why: one code path for install and
+update, on every platform, and the macOS build is notarized so no Gatekeeper
+step. Tradeoff: the script comes from `main` at update time, so a broken
+script on `main` breaks updates until fixed; Sparkle would be more native on
+macOS but needs an appcast and covers one platform.
+
 **Notifications over every screen (2026-11-06).** The ringing meeting and
 the tools a background session asks for were banners on the board only, so
 on a review or in Settings they waited unseen and asks timed out. They now

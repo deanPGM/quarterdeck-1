@@ -42,7 +42,9 @@ The script installs the latest release (macOS: `/Applications`, Linux:
 Windows: `%LOCALAPPDATA%\Quarterdeck` with a Start menu shortcut). It then
 checks what Quarterdeck uses and offers to fix what is missing: Claude Code,
 the `deck` MCP server for your own Claude sessions, `gh` and `glab` and their
-logins. Run it again to update. Read it first if you like:
+logins. Quarterdeck then tells you when a new release is out and updates
+itself in one click (Settings › General › Updates); running the script again
+also updates. Read it first if you like:
 [install.sh](install.sh), [install.ps1](install.ps1).
 
 The macOS build is signed with a Developer ID and notarized by Apple. The

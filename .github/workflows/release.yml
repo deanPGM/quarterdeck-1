@@ -53,7 +53,8 @@ jobs:
       - run: flutter pub get
 
       - name: Build
-        run: flutter build ${{ matrix.platform }} --release --build-name="${VERSION%%-*}" --build-number="$GITHUB_RUN_NUMBER"
+        # DECK_VERSION is what the app compares with the latest release.
+        run: flutter build ${{ matrix.platform }} --release --build-name="${VERSION%%-*}" --build-number="$GITHUB_RUN_NUMBER" --dart-define=DECK_VERSION="$VERSION"
 
       # Signed with the Developer ID and notarized when the secrets are set
       # (they are not on forks): see tool/package_macos.sh.
@@ -96,6 +97,10 @@ jobs:
         with:
           path: dist
           merge-multiple: true
+
+      # The install scripts check each download against it.
+      - name: Checksums
+        run: cd dist && sha256sum Quarterdeck-* > SHA256SUMS && cat SHA256SUMS
 
       # A tag with a dash (v1.2.0-beta.1) is a pre-release.
       - name: Publish

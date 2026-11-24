@@ -13,6 +13,7 @@ import 'package:deck/core/models/overview.dart';
 import 'package:deck/core/models/records.dart';
 import 'package:deck/core/models/session_progress.dart';
 import 'package:deck/core/models/snapshot.dart';
+import 'package:deck/data/deck_home.dart';
 import 'package:deck/mcp/http_host.dart';
 import 'package:deck/state/activity.dart';
 import 'package:deck/state/alarms.dart';
@@ -29,6 +30,7 @@ import 'package:deck/state/reviews.dart';
 import 'package:deck/state/sessions.dart';
 import 'package:deck/state/settings.dart';
 import 'package:deck/state/ui_memory.dart';
+import 'package:deck/state/updates.dart';
 import 'package:deck/state/worktrees.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
@@ -63,7 +65,10 @@ class FakeBoard extends Board {
   Future<void> refresh() async {}
 }
 
-List<Override> overrides(DeckConfig cfg, BoardState board, {EventRecord? ringing, NoticesState notices = const NoticesState()}) => [
+List<Override> overrides(DeckConfig cfg, BoardState board, {EventRecord? ringing, NoticesState notices = const NoticesState(), UpdateState? update}) => [
+  updatesProvider.overrideWith(() => FakeUpdates(update ?? sampleUpdate())),
+  // A made up Deck folder: screenshots never show where yours is.
+  homeProvider.overrideWith(FakeHome.new),
   ringingProvider.overrideWith(() => FakeRinging(ringing)),
   noticesProvider.overrideWith(() => FakeNotices(notices)),
   permissionHistoryProvider.overrideWith((ref) async => samplePermissionHistory()),
@@ -408,6 +413,32 @@ class FakeRinging extends Ringing {
   @override
   void stop() => state = null;
 }
+
+class FakeHome extends Home {
+  @override
+  DeckHome build() => DeckHome('/Users/sam/.deck');
+}
+
+class FakeUpdates extends Updates {
+  FakeUpdates(this.initial);
+
+  final UpdateState initial;
+
+  @override
+  UpdateState build() => initial;
+
+  @override
+  Future<void> check() async {}
+}
+
+/// A released build, checked this morning. [latest] newer than 0.1.0 offers it.
+UpdateState sampleUpdate({String latest = '0.1.0', UpdateStep step = UpdateStep.idle, String? error}) => UpdateState(
+  current: '0.1.0',
+  latest: Release(version: latest, notes: 'Faster board.', url: 'https://github.com/acme/quarterdeck/releases/tag/v$latest'),
+  checkedAt: DateTime(2026, 10, 15, 9, 5),
+  step: step,
+  error: error,
+);
 
 class FakeNotices extends Notices {
   FakeNotices(this.initial);
