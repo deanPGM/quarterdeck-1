@@ -22,7 +22,6 @@ import '../../state/alarms.dart';
 import '../../state/auto_refresh.dart';
 import '../../state/board.dart';
 import '../../state/board_filter.dart';
-import '../../state/mcp_host.dart';
 import '../../state/project_info.dart';
 import '../../state/project_overview.dart';
 import '../../state/reviews.dart';
@@ -70,7 +69,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   void initState() {
     super.initState();
     _tick = Timer.periodic(const Duration(minutes: 1), (_) => setState(() {}));
-    ref.read(mcpHostProvider);
     ref.read(autoRefreshProvider);
   }
 
