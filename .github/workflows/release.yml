@@ -1,6 +1,9 @@
 # A v* tag builds Deck for macOS, Linux and Windows and publishes a GitHub
 # Release. Run it by hand (workflow_dispatch) to get the builds as workflow
 # artifacts without a release.
+#
+# Asset names carry no version: install.sh and install.ps1 download
+# releases/latest/download/<name>, so these names must not change.
 name: Release
 
 on:
@@ -52,21 +55,26 @@ jobs:
       - name: Build
         run: flutter build ${{ matrix.platform }} --release --build-name="${VERSION%%-*}" --build-number="$GITHUB_RUN_NUMBER"
 
+      # Signed with the Developer ID and notarized when the secrets are set
+      # (they are not on forks): see tool/package_macos.sh.
       - name: Package macOS
         if: matrix.platform == 'macos'
-        run: |
-          mkdir -p dmg && cp -R build/macos/Build/Products/Release/Quarterdeck.app dmg/
-          ln -s /Applications dmg/Applications
-          hdiutil create -volname Quarterdeck -srcfolder dmg -ov -format UDZO "Quarterdeck-$VERSION-macos.dmg"
+        env:
+          MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+          MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: tool/package_macos.sh
 
       - name: Package Linux
         if: matrix.platform == 'linux'
-        run: tar -czf "Quarterdeck-$VERSION-linux-x64.tar.gz" -C build/linux/x64/release/bundle .
+        run: tar -czf Quarterdeck-linux-x64.tar.gz -C build/linux/x64/release/bundle .
 
       - name: Package Windows
         if: matrix.platform == 'windows'
         shell: pwsh
-        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath "Quarterdeck-$env:VERSION-windows-x64.zip"
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath Quarterdeck-windows-x64.zip
 
       - uses: actions/upload-artifact@v4
         with:

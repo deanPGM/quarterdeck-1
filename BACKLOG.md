@@ -149,8 +149,15 @@ prototype and internal notes removed, bundle id
 `io.github.paillardf.quarterdeck`. Done 2026-11-24: history squashed into one
 commit and the GitHub repo recreated, so no earlier commit is reachable.
 
-1. **First release.** Run the workflow once by hand (`gh workflow run release.yml`) and fix the
-   Linux and Windows builds.
+Done 2026-11-24: the workflow ran green on all three platforms (Linux and
+Windows built, never launched). Release assets have fixed names
+(`Quarterdeck-macos.dmg`, `Quarterdeck-linux-x64.tar.gz`,
+`Quarterdeck-windows-x64.zip`) so `install.sh` and `install.ps1` fetch
+`releases/latest/download/<name>`. The scripts install or update the app, then
+offer Claude Code, the `deck` MCP server, `gh` and `glab` with their logins.
+
+1. **First release.** Tag `v0.1.0`, then run both install scripts on a clean
+   machine per platform.
 2. **MCP server hardening.** `127.0.0.1:4777` has no authentication and no
    Origin check: any local process, and maybe a web page posting to localhost,
    can call it. Refuse requests with a browser Origin, then consider a token
@@ -162,17 +169,23 @@ commit and the GitHub repo recreated, so no earlier commit is reachable.
 4. **Update card.** On start and once a day, read
    `api.github.com/repos/paillardf/quarterdeck/releases/latest` (no token on a
    public repo); a newer tag than the running version shows a card with the
-   notes and a download link. Works on every platform.
+   notes and an Update button. The button starts the install script detached
+   with an app-only flag (no setup questions), and the app quits: the script
+   replaces it and opens the new one. Add a `SHA256SUMS` release asset that
+   the scripts check.
 5. **Homebrew tap.** `paillardf/homebrew-tap`, `brew install --cask
-   paillardf/tap/quarterdeck`, updated by the release workflow. Unsigned, the
-   cask clears the quarantine flag or the README says how.
+   paillardf/tap/quarterdeck`, updated by the release workflow.
 6. **Linux and Windows gaps.** Alarm chime and bring to front use `afplay`
    and `osascript` (`state/alarms.dart`). Chrome profiles read `HOME` and have
    no Windows path (`sources/chrome.dart`), reuse `userHome`. Windows IDE
    launch through a shell (`runInShell`) can break or inject on odd folder
    names. One test pass per platform in a VM before calling them supported.
-7. **Developer ID ($99/year), later.** Signed and notarized DMG: no
-   Gatekeeper step, Sparkle (`auto_updater`) for in-place updates, and
+7. **Developer ID, next steps.** Done 2026-11-24: the release workflow signs
+   (hardened runtime) and notarizes the app and the DMG through
+   `app/tool/package_macos.sh` (secrets `MACOS_CERT_P12`,
+   `MACOS_CERT_PASSWORD`, `APPLE_API_KEY_P8`, `APPLE_API_KEY_ID`,
+   `APPLE_API_ISSUER`; the certificate expires 2027-12-24). Left: Sparkle
+   (`auto_updater`) for in-place updates, and
    `UNUserNotificationCenter` banners during Focus.
 
 Later: AppImage, Scoop/winget manifests, AUR, a Claude Code plugin that

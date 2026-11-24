@@ -18,7 +18,10 @@ stays fetchable by hash even after a force push. Before each commit, read the
 staged diff (`git diff --cached`) and keep out:
 
 - Secrets: tokens, keys, cookies, `.env` files. Run `gitleaks git . --redact`
-  (or `gitleaks protect --staged`) before committing.
+  (or `gitleaks protect --staged`) before committing. `.secure_files/` (git
+  ignored) holds the macOS signing key, `.p12`, its password and the App Store
+  Connect API key: never commit, copy or print them. `set-secrets.sh` in it
+  stores them as the release workflow's GitHub secrets.
 - The author's employer: its name, products, codenames, repo paths and group
   names, Jira project keys, MR or issue numbers, Slack workspace, channel or
   user IDs, internal hosts and URLs, `~/projects/<employer>` style paths.

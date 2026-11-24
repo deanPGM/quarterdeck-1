@@ -23,6 +23,85 @@ they have not been used day to day.
 > Turn off any provider in Settings, and set the daily budget (Settings › Claude)
 > before you start.
 
+## Install
+
+**macOS and Linux**
+
+```
+curl -fsSL https://raw.githubusercontent.com/paillardf/quarterdeck/main/install.sh | sh
+```
+
+**Windows** (PowerShell)
+
+```
+irm https://raw.githubusercontent.com/paillardf/quarterdeck/main/install.ps1 | iex
+```
+
+The script installs the latest release (macOS: `/Applications`, Linux:
+`~/.local/share/quarterdeck` with a `quarterdeck` command and an app menu entry,
+Windows: `%LOCALAPPDATA%\Quarterdeck` with a Start menu shortcut). It then
+checks what Quarterdeck uses and offers to fix what is missing: Claude Code,
+the `deck` MCP server for your own Claude sessions, `gh` and `glab` and their
+logins. Run it again to update. Read it first if you like:
+[install.sh](install.sh), [install.ps1](install.ps1).
+
+The macOS build is signed with a Developer ID and notarized by Apple. The
+Windows build is not signed yet: SmartScreen may warn about an unknown
+publisher (More info › Run anyway).
+
+<details>
+<summary>Manual install</summary>
+
+Download the latest build from
+[Releases](https://github.com/paillardf/quarterdeck/releases):
+
+- **macOS:** open `Quarterdeck-macos.dmg` and drag Quarterdeck to Applications.
+- **Linux:** unpack `Quarterdeck-linux-x64.tar.gz` and run `./deck` (needs
+  GTK 3 and libnotify).
+- **Windows:** unzip `Quarterdeck-windows-x64.zip` and run `deck.exe`.
+
+</details>
+
+**Uninstall:** delete the app (`/Applications/Quarterdeck.app`,
+`~/.local/share/quarterdeck` plus `~/.local/bin/quarterdeck` and
+`~/.local/share/applications/quarterdeck.desktop`, or
+`%LOCALAPPDATA%\Quarterdeck`), then `claude mcp remove deck`. Your data stays
+in `~/.deck`.
+
+## What you need
+
+| Need | For |
+|---|---|
+| [Claude Code](https://claude.com/claude-code), logged in (`claude`) | Background runs and every Claude button |
+| `glab` logged in | GitLab merge requests, reviews and issues (no tokens spent) |
+| `gh` logged in | GitHub pull requests, reviews and issues (no tokens spent) |
+| claude.ai connectors: **Slack**, **Gmail**, **Google Calendar**, **Atlassian** | The Slack, Mail, Calendar and Jira providers |
+| An IDE command on your PATH (`code`, `cursor`, `idea`...) | Open in IDE |
+
+You only need what your providers use. The connector providers expect the
+claude.ai connectors by their default names (`claude_ai_Slack`,
+`claude_ai_Gmail`, `claude_ai_Google_Calendar`, `claude_ai_Atlassian`): a Slack
+or Jira MCP server you configured yourself under another name is not picked up.
+Mail is Gmail only (meeting notes come from Gemini notes mail).
+
+## Set up
+
+1. Open Settings › Providers and turn on the ones you use.
+2. Settings › Projects: add your project folders. Quarterdeck reads each one
+   once with Claude for its product name, icon and ticket prefix.
+3. Settings › Claude: models, refresh interval and the daily budget.
+
+Data lives in `~/.deck` (change it in Settings › General): `deck.json`,
+`state/` (your triage, todos and activity, kept in a local git repo) and
+`cache/` (safe to delete).
+
+Any Claude Code session can add todos to the board through the MCP server.
+The install script registers it; by hand:
+
+```
+claude mcp add --scope user --transport http deck http://127.0.0.1:4777/mcp
+```
+
 ## Features
 
 All screenshots use made up data.
@@ -116,53 +195,6 @@ by Claude from the log in one click.
   server (see Set up).
 
 ![A tool ask and a toast over the board](docs/screenshots/notices.png)
-
-## Install
-
-Download the latest build from
-[Releases](https://github.com/paillardf/quarterdeck/releases):
-
-- **macOS:** open the `.dmg` and drag Quarterdeck to Applications. The build is
-  not signed by Apple yet, so macOS blocks the first launch. Run once:
-  `xattr -dr com.apple.quarantine /Applications/Quarterdeck.app`
-- **Linux:** unpack the `.tar.gz` and run `./deck` (needs GTK 3 and libnotify).
-- **Windows:** unzip and run `deck.exe`. SmartScreen warns about an unknown
-  publisher: More info › Run anyway.
-
-Quarterdeck does not update itself yet: watch the Releases page.
-
-## What you need
-
-| Need | For |
-|---|---|
-| [Claude Code](https://claude.com/claude-code), logged in (`claude`) | Background runs and every Claude button |
-| `glab` logged in | GitLab merge requests, reviews and issues (no tokens spent) |
-| `gh` logged in | GitHub pull requests, reviews and issues (no tokens spent) |
-| claude.ai connectors: **Slack**, **Gmail**, **Google Calendar**, **Atlassian** | The Slack, Mail, Calendar and Jira providers |
-| An IDE command on your PATH (`code`, `cursor`, `idea`...) | Open in IDE |
-
-You only need what your providers use. The connector providers expect the
-claude.ai connectors by their default names (`claude_ai_Slack`,
-`claude_ai_Gmail`, `claude_ai_Google_Calendar`, `claude_ai_Atlassian`): a Slack
-or Jira MCP server you configured yourself under another name is not picked up.
-Mail is Gmail only (meeting notes come from Gemini notes mail).
-
-## Set up
-
-1. Open Settings › Providers and turn on the ones you use.
-2. Settings › Projects: add your project folders. Quarterdeck reads each one
-   once with Claude for its product name, icon and ticket prefix.
-3. Settings › Claude: models, refresh interval and the daily budget.
-
-Data lives in `~/.deck` (change it in Settings › General): `deck.json`,
-`state/` (your triage, todos and activity, kept in a local git repo) and
-`cache/` (safe to delete).
-
-Any Claude Code session can add todos to the board through the MCP server:
-
-```
-claude mcp add --scope user --transport http deck http://127.0.0.1:4777/mcp
-```
 
 ## Build from source
 

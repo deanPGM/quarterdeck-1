@@ -2,3 +2,6 @@ node_modules/
 .claude/settings.local.json
 .DS_Store
 .idea/
+
+# Signing keys and secrets, local only (see CLAUDE.md)
+.secure_files/
