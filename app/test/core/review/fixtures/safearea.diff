@@ -1,0 +1,256 @@
+diff --git a/lib/src/features/framing/framing_screen.dart b/lib/src/features/framing/framing_screen.dart
+index 4cdee05d..39bcc859 100644
+--- a/lib/src/features/framing/framing_screen.dart
++++ b/lib/src/features/framing/framing_screen.dart
+@@ -75,35 +75,38 @@ class FramingScreen extends HookConsumerWidget {
+             ),
+         ],
+       ),
+-      body: framingFuture.when(
+-        loading: () => const Center(child: CircularProgressIndicator()),
+-        error: (error, _) => Center(
+-          child: Column(
+-            mainAxisAlignment: MainAxisAlignment.center,
+-            children: [
+-              Icon(Icons.error_outline, size: 48, color: colors.error),
+-              const SizedBox(height: 12),
+-              Text(context.tr("framing.error")),
+-              const SizedBox(height: 24),
+-              FilledButton.icon(
+-                onPressed: () => ref.invalidate(framingSettingsProvider),
+-                icon: const Icon(Icons.refresh),
+-                label: const Text('Retry'),
+-              ),
+-            ],
+-          ),
+-        ),
+-        data: (_) => Padding(
+-          padding: const EdgeInsets.all(16),
+-          child: AdaptiveLayout(
+-            primary: _FramePreview(
+-              settings: settings,
+-              selectedTab: selectedTab.value,
++      body: SafeArea(
++        child: framingFuture.when(
++          loading: () => const Center(child: CircularProgressIndicator()),
++          error: (error, _) => Center(
++            child: Column(
++              mainAxisAlignment: MainAxisAlignment.center,
++              children: [
++                Icon(Icons.error_outline, size: 48, color: colors.error),
++                const SizedBox(height: 12),
++                Text(context.tr("framing.error")),
++                const SizedBox(height: 24),
++                FilledButton.icon(
++                  onPressed: () => ref.invalidate(framingSettingsProvider),
++                  icon: const Icon(Icons.refresh),
++                  label: const Text('Retry'),
++                ),
++              ],
+             ),
+-            secondary: SingleChildScrollView(
+-              child: Column(
++          ),
++          data: (_) => Padding(
++            padding: const EdgeInsets.all(16),
++            child: AdaptiveLayout(
++              primaryFlex: 1,
++              secondaryFlex: 0,
++              primary: _FramePreview(
++                settings: settings,
++                selectedTab: selectedTab.value,
++              ),
++              secondary: Column(
+                 mainAxisSize: MainAxisSize.min,
+                 children: [
++                  SizedBox(height: 8),
+                   SegmentedButton<int>(
+                     selected: {selectedTab.value},
+                     onSelectionChanged: (v) => selectedTab.value = v.first,
+@@ -133,9 +136,7 @@ class FramingScreen extends HookConsumerWidget {
+                       },
+                       cornerRadius: settings.cornerRadius,
+                       onCornerRadiusChanged: (radius) {
+-                        updateSettings(
+-                          settings.copyWith(cornerRadius: radius),
+-                        );
++                        updateSettings(settings.copyWith(cornerRadius: radius));
+                       },
+                     )
+                   else
+diff --git a/lib/src/features/settings/parental_settings_screen.dart b/lib/src/features/settings/parental_settings_screen.dart
+index 7216684e..67984fdb 100644
+--- a/lib/src/features/settings/parental_settings_screen.dart
++++ b/lib/src/features/settings/parental_settings_screen.dart
+@@ -26,94 +26,96 @@ class ParentalSettingsScreen extends HookConsumerWidget {
+ 
+     return Scaffold(
+       appBar: AppBar(title: const Text('Settings')),
+-      body: SettingsList(
+-        children: [
+-          SettingsSection(
+-            title: "Devices",
+-            elevation: 0,
+-            children: [
+-              if (isConnected) ...[
+-                SettingsEntry(
+-                  title: "Device name",
+-                  subtitle: deviceConnection?.deviceName ?? "unknown",
+-                  icon: Icons.person,
+-                ),
+-                SettingsEntry(
+-                  title: "Connection status",
+-                  subtitle:
+-                      "Device status is ${deviceConnection?.state.name ?? "unknown"}",
+-                  icon: Icons.cast_connected,
+-                ),
+-              ],
+-              SettingsEntry(
+-                title: context.tr('parent.pair_device'),
+-                subtitle: "Connect a new Luna device",
+-                icon: Icons.add_circle_outline,
+-                onTap: () {
+-                  Navigator.push(
+-                    context,
+-                    MaterialPageRoute(
+-                      builder: (context) => const ParentalPairingScreen(),
+-                    ),
+-                  );
+-                },
+-              ),
+-            ],
+-          ),
+-          if (isConnected)
++      body: SafeArea(
++        child: SettingsList(
++          children: [
+             SettingsSection(
+-              title: "Configurations",
++              title: "Devices",
++              elevation: 0,
+               children: [
++                if (isConnected) ...[
++                  SettingsEntry(
++                    title: "Device name",
++                    subtitle: deviceConnection?.deviceName ?? "unknown",
++                    icon: Icons.person,
++                  ),
++                  SettingsEntry(
++                    title: "Connection status",
++                    subtitle:
++                        "Device status is ${deviceConnection?.state.name ?? "unknown"}",
++                    icon: Icons.cast_connected,
++                  ),
++                ],
+                 SettingsEntry(
+-                  title: "Planning",
+-                  subtitle: "Setup the alarm clock planning",
+-                  icon: Icons.alarm,
+-                  onTap: () {
+-                    Navigator.push(
+-                      context,
+-                      MaterialPageRoute(builder: (context) => PlanningScreen()),
+-                    );
+-                  },
+-                ),
+-                SettingsEntry(
+-                  title: "Screen Framing",
+-                  subtitle: "Adjust screen padding and corner radius",
+-                  icon: Icons.crop_free,
+-                  onTap: () {
+-                    Navigator.push(
+-                      context,
+-                      MaterialPageRoute(builder: (context) => FramingScreen()),
+-                    );
+-                  },
+-                ),
+-                SettingsEntry(
+-                  title: "Nightlight Settings",
+-                  subtitle: "Adjust brightness, color, and darkness",
+-                  icon: Icons.flashlight_on,
++                  title: context.tr('parent.pair_device'),
++                  subtitle: "Connect a new Luna device",
++                  icon: Icons.add_circle_outline,
+                   onTap: () {
+                     Navigator.push(
+                       context,
+                       MaterialPageRoute(
+-                        builder: (context) => NightlightScreen(),
++                        builder: (context) => const ParentalPairingScreen(),
+                       ),
+                     );
+                   },
+                 ),
+-                SettingsEntry(
+-                  title: "Nap Settings",
+-                  subtitle: "Configure nap duration and nightlight",
+-                  icon: Icons.bedtime,
+-                  onTap: () {
+-                    Navigator.push(
+-                      context,
+-                      MaterialPageRoute(builder: (context) => NapScreen()),
+-                    );
+-                  },
+-                ),
+               ],
+             ),
+-          SettingsDeviceManagementSection(origin: SettingsOrigin.parental),
+-        ],
++            if (isConnected)
++              SettingsSection(
++                title: "Configurations",
++                children: [
++                  SettingsEntry(
++                    title: "Planning",
++                    subtitle: "Setup the alarm clock planning",
++                    icon: Icons.alarm,
++                    onTap: () {
++                      Navigator.push(
++                        context,
++                        MaterialPageRoute(builder: (context) => PlanningScreen()),
++                      );
++                    },
++                  ),
++                  SettingsEntry(
++                    title: "Screen Framing",
++                    subtitle: "Adjust screen padding and corner radius",
++                    icon: Icons.crop_free,
++                    onTap: () {
++                      Navigator.push(
++                        context,
++                        MaterialPageRoute(builder: (context) => FramingScreen()),
++                      );
++                    },
++                  ),
++                  SettingsEntry(
++                    title: "Nightlight Settings",
++                    subtitle: "Adjust brightness, color, and darkness",
++                    icon: Icons.flashlight_on,
++                    onTap: () {
++                      Navigator.push(
++                        context,
++                        MaterialPageRoute(
++                          builder: (context) => NightlightScreen(),
++                        ),
++                      );
++                    },
++                  ),
++                  SettingsEntry(
++                    title: "Nap Settings",
++                    subtitle: "Configure nap duration and nightlight",
++                    icon: Icons.bedtime,
++                    onTap: () {
++                      Navigator.push(
++                        context,
++                        MaterialPageRoute(builder: (context) => NapScreen()),
++                      );
++                    },
++                  ),
++                ],
++              ),
++            SettingsDeviceManagementSection(origin: SettingsOrigin.parental),
++          ],
++        ),
+       ),
+     );
+   }

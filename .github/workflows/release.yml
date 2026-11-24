@@ -1,0 +1,99 @@
+# A v* tag builds Deck for macOS, Linux and Windows and publishes a GitHub
+# Release. Run it by hand (workflow_dispatch) to get the builds as workflow
+# artifacts without a release.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+env:
+  FLUTTER_VERSION: 3.50.0
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: macos
+          - os: ubuntu-latest
+            platform: linux
+          - os: windows-latest
+            platform: windows
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+
+      - name: Linux build dependencies
+        if: matrix.platform == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y clang cmake ninja-build pkg-config libgtk-3-dev libnotify-dev
+
+      # v1.2.0 → 1.2.0; a manual run builds 0.0.0-dev.
+      - name: Version
+        run: |
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then v="${GITHUB_REF_NAME#v}"; else v="0.0.0-dev"; fi
+          echo "VERSION=$v" >> "$GITHUB_ENV"
+
+      - run: flutter pub get
+
+      - name: Build
+        run: flutter build ${{ matrix.platform }} --release --build-name="${VERSION%%-*}" --build-number="$GITHUB_RUN_NUMBER"
+
+      - name: Package macOS
+        if: matrix.platform == 'macos'
+        run: |
+          mkdir -p dmg && cp -R build/macos/Build/Products/Release/Quarterdeck.app dmg/
+          ln -s /Applications dmg/Applications
+          hdiutil create -volname Quarterdeck -srcfolder dmg -ov -format UDZO "Quarterdeck-$VERSION-macos.dmg"
+
+      - name: Package Linux
+        if: matrix.platform == 'linux'
+        run: tar -czf "Quarterdeck-$VERSION-linux-x64.tar.gz" -C build/linux/x64/release/bundle .
+
+      - name: Package Windows
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: Compress-Archive -Path build/windows/x64/runner/Release/* -DestinationPath "Quarterdeck-$env:VERSION-windows-x64.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}
+          path: |
+            app/*.dmg
+            app/*.tar.gz
+            app/*.zip
+          if-no-files-found: error
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      # A tag with a dash (v1.2.0-beta.1) is a pre-release.
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          pre=""; [[ "$GITHUB_REF_NAME" == *-* ]] && pre="--prerelease"
+          gh release create "$GITHUB_REF_NAME" dist/* -R "$GITHUB_REPOSITORY" \
+            --title "Quarterdeck ${GITHUB_REF_NAME#v}" --generate-notes $pre

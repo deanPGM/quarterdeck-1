@@ -1,0 +1,37 @@
+diff --git a/lib/dns.dart b/lib/dns.dart
+index 1111111..2222222 100644
+--- a/lib/dns.dart
++++ b/lib/dns.dart
+@@ -10,4 +10,32 @@ class DnsRepository {
+ class DnsRepository {
+   final Api api;
+ 
++  Future<void> pause() async {
++    final r = await api.pause();
++    if (r.isError) {
++      throw DnsException(r.error);
++    }
++  }
++
++  Future<void> resume() async {
++    final r = await api.resume();
++    if (r.isError) {
++      throw DnsException(r.error);
++    }
++  }
++
++  Future<void> status() async {
++    final r = await api.status();
++    if (r.isError) {
++      throw DnsException(r.error);
++    }
++  }
++
++  Future<void> refresh() async {
++    final r = await api.refresh();
++    if (r.isError) {
++      throw DnsException(r.error);
++    }
++  }
++
+ }
