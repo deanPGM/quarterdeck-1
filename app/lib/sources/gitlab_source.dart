@@ -20,6 +20,9 @@ class MrFetch {
 
 String _enc(String path) => Uri.encodeComponent(path);
 
+/// "group/project" of a merge request, from its link.
+String _path(Map mr) => Uri.parse(mr['web_url'] as String).path.substring(1).split('/-/').first;
+
 class GitlabSource {
   String? _me;
   final _cache = <String, MrRecord>{};
@@ -129,7 +132,7 @@ class GitlabSource {
     final pipes = (r[1] as List?) ?? const [];
     final url = mr['web_url'] as String;
     final rec = MrRecord(
-      path: Uri.parse(url).path.substring(1).split('/-/').first,
+      path: _path(mr),
       iid: int.parse('${mr['iid']}'),
       title: mr['title'] as String,
       url: url,
@@ -153,18 +156,23 @@ class GitlabSource {
     return rec;
   }
 
-  /// Every open MR you wrote, are assigned to, or review.
-  Future<MrFetch> fetchAll() async {
+  /// Every open MR you wrote, are assigned to, or review; only in the
+  /// projects [only] ("group/project") when given.
+  Future<MrFetch> fetchAll({List<String>? only}) async {
     final user = await me();
+    if (only != null && only.isEmpty) return MrFetch(user, const []);
     final lists = await Future.wait([
       for (final role in ['reviewer_username', 'author_username', 'assignee_username'])
         _api('merge_requests?state=opened&scope=all&per_page=100&$role=$user', all: true),
     ]);
+    // Filtered before the details: those cost three glab calls per MR.
+    final keep = only?.map((p) => p.toLowerCase()).toSet();
+    bool kept(Map m) => keep == null || keep.contains(_path(m).toLowerCase());
     final byId = <String, (Map, MrRole)>{};
-    for (final m in (lists[0] as List).cast<Map>()) {
+    for (final m in (lists[0] as List).cast<Map>().where(kept)) {
       byId['${m['project_id']}!${m['iid']}'] = (m, MrRole.review);
     }
-    for (final m in [...(lists[1] as List), ...(lists[2] as List)].cast<Map>()) {
+    for (final m in [...(lists[1] as List), ...(lists[2] as List)].cast<Map>().where(kept)) {
       byId['${m['project_id']}!${m['iid']}'] = (m, MrRole.mine);
     }
     final records = <MrRecord>[];

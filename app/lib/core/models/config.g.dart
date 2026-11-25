@@ -10,12 +10,14 @@ _ProviderConfig _$ProviderConfigFromJson(Map<String, dynamic> json) => _Provider
   enabled: json['enabled'] as bool? ?? true,
   access: $enumDecodeNullable(_$AccessEnumMap, json['access'], unknownValue: Access.cli) ?? Access.claude,
   options: (json['options'] as Map<String, dynamic>?)?.map((k, e) => MapEntry(k, e as String)) ?? const {},
+  projectsOnly: json['projectsOnly'] as bool? ?? false,
 );
 
 Map<String, dynamic> _$ProviderConfigToJson(_ProviderConfig instance) => <String, dynamic>{
   'enabled': instance.enabled,
   'access': _$AccessEnumMap[instance.access]!,
   'options': instance.options,
+  'projectsOnly': instance.projectsOnly,
 };
 
 const _$AccessEnumMap = {Access.cli: 'cli', Access.claude: 'claude'};

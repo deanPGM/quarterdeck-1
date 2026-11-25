@@ -4,6 +4,7 @@
 import '../core/classify/notes.dart';
 import '../core/models/config.dart';
 import '../core/models/records.dart';
+import '../core/projects.dart';
 import '../mcp/deck_server.dart';
 
 class TaskSpec {
@@ -78,7 +79,11 @@ TaskSpec? taskFor(
       final esc = cfg.options['escalationType'] ?? 'Customer Escalation';
       // Both queries are given whole: left to write the second one, the model
       // dropped the assignee and pulled every escalation's comments.
-      const mine = 'assignee = currentUser() AND statusCategory != Done AND updated >= -180d';
+      final keys = projectScope('jira', cfg, projects);
+      final mine = [
+        if (keys != null) 'project in (${keys.map((k) => '"$k"').join(', ')})',
+        'assignee = currentUser() AND statusCategory != Done AND updated >= -180d',
+      ].join(' AND ');
       return TaskSpec(
         DeckTask(
           id: id,
@@ -235,12 +240,15 @@ TaskSpec? taskFor(
         const ['mcp__claude_ai_Google_Calendar__list_events'],
       );
     case 'github':
+      final repos = projectScope('github', cfg, projects);
       return TaskSpec(
         DeckTask(
           id: id,
           kind: 'fetch',
+          input: {'repos': ?repos},
           instructions:
-              'Use the GitHub tools. Find open pull requests where the user is author, assignee or requested reviewer. '
+              'Use the GitHub tools. Find open pull requests where the user is author, assignee or requested reviewer'
+              '${repos == null ? '' : ', only in the repositories listed in input.repos'}. '
               'Submit one record per PR: path ("owner/repo"), iid (number), title, url, author (login), role ("mine" or "review"), '
               'draft, conflicts, pipeline (combined check status upper case: SUCCESS, FAILED, RUNNING), approvers (logins that approved), '
               'approved (no changes requested and enough approvals), createdAt, updatedAt, threads (unresolved review threads: '

@@ -18,6 +18,19 @@ List<String> projectsOf(DeckCard c, List<ProjectConfig> projects) {
   return ids.isEmpty ? const [otherProject] : ids;
 }
 
+/// What [provider] fetches when it keeps to the projects set up in Deck:
+/// "group/project" paths for GitLab and GitHub (repo and task board), Jira
+/// keys from task boards. Null when [cfg] fetches everything.
+List<String>? projectScope(String provider, ProviderConfig cfg, List<ProjectConfig> projects) {
+  if (!cfg.projectsOnly) return null;
+  final prefix = '$provider:';
+  return {
+    for (final p in projects)
+      for (final s in [if (provider != 'jira') p.repo, p.board])
+        if (s != null && s.startsWith(prefix) && s.length > prefix.length) s.substring(prefix.length),
+  }.toList();
+}
+
 /// The project to work in for a card: the first matching project with a folder.
 ProjectConfig? workProject(DeckCard c, List<ProjectConfig> projects) {
   final ids = projectsOf(c, projects);

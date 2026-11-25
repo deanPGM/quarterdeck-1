@@ -28,4 +28,18 @@ void main() {
     expect(projectDir(_mr('acme/api'), projects), '/w/api');
     expect(workProject(_mr('acme/web'), projects), isNull);
   });
+
+  test('projectsOnly keeps a provider to the repos and boards set up in Deck', () {
+    const ps = [
+      ProjectConfig(id: 'ios', name: 'iOS', repo: 'gitlab:acme/ios', board: 'jira:AVPN'),
+      ProjectConfig(id: 'web', name: 'Web', repo: 'github:acme/web', board: 'gitlab:acme/tasks'),
+      ProjectConfig(id: 'api', name: 'API', repo: 'gitlab:acme/ios'),
+    ];
+    const on = ProviderConfig(projectsOnly: true);
+    expect(projectScope('gitlab', const ProviderConfig(), ps), isNull);
+    expect(projectScope('gitlab', on, ps), ['acme/ios', 'acme/tasks']);
+    expect(projectScope('github', on, ps), ['acme/web']);
+    expect(projectScope('jira', on, ps), ['AVPN']);
+    expect(projectScope('jira', on, const []), isEmpty);
+  });
 }

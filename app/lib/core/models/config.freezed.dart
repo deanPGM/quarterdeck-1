@@ -17,7 +17,9 @@ T _$identity<T>(T value) => value;
 mixin _$ProviderConfig {
 
  bool get enabled;@JsonKey(unknownEnumValue: Access.cli) Access get access;/// Provider specific settings (Jira escalation type, Slack queries...).
- Map<String, String> get options;
+ Map<String, String> get options;/// GitLab, GitHub, Jira: fetch only the projects set up in Deck (their
+/// repo or task board), not everything you take part in.
+ bool get projectsOnly;
 /// Create a copy of ProviderConfig
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -31,20 +33,20 @@ $ProviderConfigCopyWith<ProviderConfig> get copyWith => _$ProviderConfigCopyWith
 @override
 bool operator ==(Object other) {
   final _this = this as ProviderConfig;
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProviderConfig&&(identical(other.enabled, _this.enabled) || other.enabled == _this.enabled)&&(identical(other.access, _this.access) || other.access == _this.access)&&const DeepCollectionEquality().equals(other.options, _this.options));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is ProviderConfig&&(identical(other.enabled, _this.enabled) || other.enabled == _this.enabled)&&(identical(other.access, _this.access) || other.access == _this.access)&&const DeepCollectionEquality().equals(other.options, _this.options)&&(identical(other.projectsOnly, _this.projectsOnly) || other.projectsOnly == _this.projectsOnly));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
   final _this = this as ProviderConfig;
-  return Object.hash(runtimeType,_this.enabled,_this.access,const DeepCollectionEquality().hash(_this.options));
+  return Object.hash(runtimeType,_this.enabled,_this.access,const DeepCollectionEquality().hash(_this.options),_this.projectsOnly);
 }
 
 @override
 String toString() {
   final _this = this as ProviderConfig;
-  return 'ProviderConfig(enabled: ${_this.enabled}, access: ${_this.access}, options: ${_this.options})';
+  return 'ProviderConfig(enabled: ${_this.enabled}, access: ${_this.access}, options: ${_this.options}, projectsOnly: ${_this.projectsOnly})';
 }
 
 
@@ -55,7 +57,7 @@ abstract mixin class $ProviderConfigCopyWith<$Res>  {
   factory $ProviderConfigCopyWith(ProviderConfig value, $Res Function(ProviderConfig) _then) = _$ProviderConfigCopyWithImpl;
 @useResult
 $Res call({
- bool enabled,@JsonKey(unknownEnumValue: Access.cli) Access access, Map<String, String> options
+ bool enabled,@JsonKey(unknownEnumValue: Access.cli) Access access, Map<String, String> options, bool projectsOnly
 });
 
 
@@ -72,12 +74,13 @@ class _$ProviderConfigCopyWithImpl<$Res>
 
 /// Create a copy of ProviderConfig
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? enabled = null,Object? access = null,Object? options = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? enabled = null,Object? access = null,Object? options = null,Object? projectsOnly = null,}) {
   return _then(ProviderConfig(
 enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
 as bool,access: null == access ? _self.access : access // ignore: cast_nullable_to_non_nullable
 as Access,options: null == options ? _self.options : options // ignore: cast_nullable_to_non_nullable
-as Map<String, String>,
+as Map<String, String>,projectsOnly: null == projectsOnly ? _self.projectsOnly : projectsOnly // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 
@@ -162,10 +165,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool enabled, @JsonKey(unknownEnumValue: Access.cli)  Access access,  Map<String, String> options)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( bool enabled, @JsonKey(unknownEnumValue: Access.cli)  Access access,  Map<String, String> options,  bool projectsOnly)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _ProviderConfig() when $default != null:
-return $default(_that.enabled,_that.access,_that.options);case _:
+return $default(_that.enabled,_that.access,_that.options,_that.projectsOnly);case _:
   return orElse();
 
 }
@@ -183,10 +186,10 @@ return $default(_that.enabled,_that.access,_that.options);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool enabled, @JsonKey(unknownEnumValue: Access.cli)  Access access,  Map<String, String> options)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( bool enabled, @JsonKey(unknownEnumValue: Access.cli)  Access access,  Map<String, String> options,  bool projectsOnly)  $default,) {final _that = this;
 switch (_that) {
 case _ProviderConfig():
-return $default(_that.enabled,_that.access,_that.options);case _:
+return $default(_that.enabled,_that.access,_that.options,_that.projectsOnly);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -203,10 +206,10 @@ return $default(_that.enabled,_that.access,_that.options);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool enabled, @JsonKey(unknownEnumValue: Access.cli)  Access access,  Map<String, String> options)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( bool enabled, @JsonKey(unknownEnumValue: Access.cli)  Access access,  Map<String, String> options,  bool projectsOnly)?  $default,) {final _that = this;
 switch (_that) {
 case _ProviderConfig() when $default != null:
-return $default(_that.enabled,_that.access,_that.options);case _:
+return $default(_that.enabled,_that.access,_that.options,_that.projectsOnly);case _:
   return null;
 
 }
@@ -218,7 +221,7 @@ return $default(_that.enabled,_that.access,_that.options);case _:
 @JsonSerializable()
 
 class _ProviderConfig implements ProviderConfig {
-  const _ProviderConfig({this.enabled = true, @JsonKey(unknownEnumValue: Access.cli) this.access = Access.claude,  Map<String, String> options = const {}}): _options = options;
+  const _ProviderConfig({this.enabled = true, @JsonKey(unknownEnumValue: Access.cli) this.access = Access.claude,  Map<String, String> options = const {}, this.projectsOnly = false}): _options = options;
   factory _ProviderConfig.fromJson(Map<String, dynamic> json) => _$ProviderConfigFromJson(json);
 
 @override@JsonKey() final  bool enabled;
@@ -232,6 +235,9 @@ class _ProviderConfig implements ProviderConfig {
   return EqualUnmodifiableMapView(_options);
 }
 
+/// GitLab, GitHub, Jira: fetch only the projects set up in Deck (their
+/// repo or task board), not everything you take part in.
+@override@JsonKey() final  bool projectsOnly;
 
 /// Create a copy of ProviderConfig
 /// with the given fields replaced by the non-null parameter values.
@@ -246,18 +252,18 @@ Map<String, dynamic> toJson() {
 
 @override
 bool operator ==(Object other) {
-    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProviderConfig&&(identical(other.enabled, enabled) || other.enabled == enabled)&&(identical(other.access, access) || other.access == access)&&const DeepCollectionEquality().equals(other.options, _options));
+    return identical(this, other) || (other.runtimeType == runtimeType&&other is _ProviderConfig&&(identical(other.enabled, enabled) || other.enabled == enabled)&&(identical(other.access, access) || other.access == access)&&const DeepCollectionEquality().equals(other.options, _options)&&(identical(other.projectsOnly, projectsOnly) || other.projectsOnly == projectsOnly));
 }
 
 @JsonKey(includeFromJson: false, includeToJson: false)
 @override
 int get hashCode {
-    return Object.hash(runtimeType,enabled,access,const DeepCollectionEquality().hash(_options));
+    return Object.hash(runtimeType,enabled,access,const DeepCollectionEquality().hash(_options),projectsOnly);
 }
 
 @override
 String toString() {
-    return 'ProviderConfig(enabled: $enabled, access: $access, options: $options)';
+    return 'ProviderConfig(enabled: $enabled, access: $access, options: $options, projectsOnly: $projectsOnly)';
 }
 
 
@@ -268,7 +274,7 @@ abstract mixin class _$ProviderConfigCopyWith<$Res> implements $ProviderConfigCo
   factory _$ProviderConfigCopyWith(_ProviderConfig value, $Res Function(_ProviderConfig) _then) = __$ProviderConfigCopyWithImpl;
 @override @useResult
 $Res call({
- bool enabled,@JsonKey(unknownEnumValue: Access.cli) Access access, Map<String, String> options
+ bool enabled,@JsonKey(unknownEnumValue: Access.cli) Access access, Map<String, String> options, bool projectsOnly
 });
 
 
@@ -285,12 +291,13 @@ class __$ProviderConfigCopyWithImpl<$Res>
 
 /// Create a copy of ProviderConfig
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? enabled = null,Object? access = null,Object? options = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? enabled = null,Object? access = null,Object? options = null,Object? projectsOnly = null,}) {
   return _then(_ProviderConfig(
 enabled: null == enabled ? _self.enabled : enabled // ignore: cast_nullable_to_non_nullable
 as bool,access: null == access ? _self.access : access // ignore: cast_nullable_to_non_nullable
 as Access,options: null == options ? _self._options : options // ignore: cast_nullable_to_non_nullable
-as Map<String, String>,
+as Map<String, String>,projectsOnly: null == projectsOnly ? _self.projectsOnly : projectsOnly // ignore: cast_nullable_to_non_nullable
+as bool,
   ));
 }
 

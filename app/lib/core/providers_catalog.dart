@@ -2,7 +2,15 @@
 import 'models/config.dart';
 
 class ProviderInfo {
-  const ProviderInfo({required this.id, required this.name, required this.description, required this.access, this.cli, this.options = const {}});
+  const ProviderInfo({
+    required this.id,
+    required this.name,
+    required this.description,
+    required this.access,
+    this.cli,
+    this.options = const {},
+    this.scoped = false,
+  });
 
   final String id;
   final String name;
@@ -16,6 +24,9 @@ class ProviderInfo {
 
   /// Option key → label, shown in Settings.
   final Map<String, String> options;
+
+  /// Can keep to the projects set up in Deck ([ProviderConfig.projectsOnly]).
+  final bool scoped;
 }
 
 const providerCatalog = <ProviderInfo>[
@@ -25,6 +36,7 @@ const providerCatalog = <ProviderInfo>[
     description: 'Merge requests you wrote, are assigned to, or review.',
     access: [Access.cli, Access.claude],
     cli: 'glab',
+    scoped: true,
   ),
   ProviderInfo(
     id: 'github',
@@ -32,6 +44,7 @@ const providerCatalog = <ProviderInfo>[
     description: 'Pull requests you wrote, are assigned to, or review.',
     access: [Access.cli, Access.claude],
     cli: 'gh',
+    scoped: true,
   ),
   ProviderInfo(
     id: 'jira',
@@ -39,6 +52,7 @@ const providerCatalog = <ProviderInfo>[
     description: 'Open issues assigned to you.',
     access: [Access.claude],
     options: {'escalationType': 'Escalation issue type', 'site': 'Site'},
+    scoped: true,
   ),
   ProviderInfo(
     id: 'slack',

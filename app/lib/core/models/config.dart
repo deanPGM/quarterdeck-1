@@ -18,6 +18,10 @@ abstract class ProviderConfig with _$ProviderConfig {
 
     /// Provider specific settings (Jira escalation type, Slack queries...).
     @Default({}) Map<String, String> options,
+
+    /// GitLab, GitHub, Jira: fetch only the projects set up in Deck (their
+    /// repo or task board), not everything you take part in.
+    @Default(false) bool projectsOnly,
   }) = _ProviderConfig;
 
   factory ProviderConfig.fromJson(Map<String, Object?> json) => _$ProviderConfigFromJson(json);

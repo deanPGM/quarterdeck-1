@@ -64,6 +64,22 @@ void main() {
     expect(taskFor('slack', const ProviderConfig(), null, now)!.task.instructions, contains('url (the permalink'));
   });
 
+  test('jira and github keep to the projects set up in Deck when asked', () {
+    const ps = [
+      ProjectConfig(id: 'vpn', name: 'VPN', repo: 'github:acme/vpn', board: 'jira:AVPN'),
+      ProjectConfig(id: 'web', name: 'Web', board: 'jira:WEB'),
+    ];
+    const on = ProviderConfig(projectsOnly: true);
+    final jira = taskFor('jira', on, null, now, projects: ps)!.task.input;
+    expect(jira['jql'], 'project in ("AVPN", "WEB") AND assignee = currentUser() AND statusCategory != Done AND updated >= -180d');
+    expect(jira['escalations'], startsWith('project in ("AVPN", "WEB") AND '));
+    expect(taskFor('jira', const ProviderConfig(), null, now, projects: ps)!.task.input['jql'], startsWith('assignee = currentUser()'));
+    final gh = taskFor('github', on, null, now, projects: ps)!.task;
+    expect(gh.input['repos'], ['acme/vpn']);
+    expect(gh.instructions, contains('only in the repositories listed in input.repos'));
+    expect(taskFor('github', const ProviderConfig(), null, now, projects: ps)!.task.input.containsKey('repos'), isFalse);
+  });
+
   group('recordProblems', () {
     const good = {'id': 'a1', 'url': 'https://x', 'at': '2026-10-30T18:29:26Z', 'title': 'Workload review'};
 

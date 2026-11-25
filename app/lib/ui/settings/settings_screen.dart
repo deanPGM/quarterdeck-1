@@ -359,10 +359,22 @@ class _ProviderPaneState extends ConsumerState<ProviderPane> {
               ],
             ],
           ),
-          if (info.options.isNotEmpty)
+          if (info.options.isNotEmpty || info.scoped)
             SettingsGroup(
               title: 'Options',
               children: [
+                if (info.scoped)
+                  SettingsRow(
+                    label: 'Only my projects',
+                    description: info.id == 'jira'
+                        ? 'Only tickets of projects whose task board is in Jira. Off: every ticket assigned to you.'
+                        : 'Only ${info.id == 'github' ? 'pull' : 'merge'} requests of projects whose repo or task board is in ${info.name}. '
+                              'Off: every one you take part in.',
+                    trailing: Switch(
+                      value: pc.projectsOnly,
+                      onChanged: (v) => set(pc.copyWith(projectsOnly: v)),
+                    ),
+                  ),
                 for (final o in info.options.entries)
                   SettingsRow(
                     label: o.value,

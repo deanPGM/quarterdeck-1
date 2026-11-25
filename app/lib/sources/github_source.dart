@@ -97,14 +97,18 @@ class GithubSource {
     ];
   }
 
-  /// Every open PR you wrote, are assigned to, or review.
-  Future<MrFetch> fetchAll() async {
+  /// Every open PR you wrote, are assigned to, or review; only in the repos
+  /// [only] ("owner/repo") when given.
+  Future<MrFetch> fetchAll({List<String>? only}) async {
     final user = await me();
+    if (only != null && only.isEmpty) return MrFetch(user, const []);
+    // Several repo: qualifiers match any of them.
+    final base = ['is:pr is:open archived:false', for (final r in only ?? const []) 'repo:$r'].join(' ');
     final q = {
-      'mine': 'is:pr is:open archived:false author:$user',
-      'assigned': 'is:pr is:open archived:false assignee:$user',
-      'review': 'is:pr is:open archived:false review-requested:$user',
-      'reviewed': 'is:pr is:open archived:false reviewed-by:$user -author:$user',
+      'mine': '$base author:$user',
+      'assigned': '$base assignee:$user',
+      'review': '$base review-requested:$user',
+      'reviewed': '$base reviewed-by:$user -author:$user',
     };
     final query = [for (final e in q.entries) '${e.key}: search(query: "${e.value}", type: ISSUE, first: 30) { nodes { $_pr } }'].join('\n');
     final data = (jsonDecode(await _gh(['api', 'graphql', '-f', 'query={ $query }'])) as Map)['data'] as Map;

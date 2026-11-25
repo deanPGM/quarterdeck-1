@@ -25,6 +25,8 @@ import '../core/models/config.dart';
 import '../core/models/overview.dart';
 import '../core/models/records.dart';
 import '../core/models/snapshot.dart';
+import '../core/projects.dart';
+import '../core/providers_catalog.dart';
 import '../core/tickets.dart';
 import '../core/tool_rules.dart';
 import '../data/activity_store.dart';
@@ -167,6 +169,7 @@ class Board extends _$Board implements DeckBackend {
     unawaited(_logSessions(cfg, now));
     final viaClaude = <TaskSpec>[];
     for (final e in cfg.providers.entries.where((e) => e.value.enabled)) {
+      if (await _noScope(e.key, e.value, cfg)) continue;
       if (e.key == 'gitlab' && e.value.access == Access.cli) {
         unawaited(_refreshGitlab());
       } else if (e.key == 'github' && e.value.access == Access.cli) {
@@ -189,7 +192,7 @@ class Board extends _$Board implements DeckBackend {
   Future<void> refreshOne(String provider) async {
     final cfg = await ref.read(settingsProvider.future);
     final p = cfg.providers[provider];
-    if (p == null || !p.enabled) return;
+    if (p == null || !p.enabled || await _noScope(provider, p, cfg)) return;
     if (provider == 'gitlab' && p.access == Access.cli) return _refreshGitlab();
     if (provider == 'github' && p.access == Access.cli) return _refreshGithub();
     if (_s.busy.contains(provider)) return;
@@ -203,6 +206,15 @@ class Board extends _$Board implements DeckBackend {
       ])
         _runClaude([s], cfg),
     ]);
+  }
+
+  /// A provider kept to the projects set up in Deck, when none has a repo or
+  /// board there: no run, an empty column that says why.
+  Future<bool> _noScope(String provider, ProviderConfig p, DeckConfig cfg) async {
+    if (projectScope(provider, p, cfg.projects)?.isEmpty != true) return false;
+    final where = provider == 'jira' ? 'a Jira task board' : 'a ${providerInfo(provider).name} repo or task board';
+    await _save(provider, Snapshot(state: SourceState.ok, message: 'No project has $where', at: DateTime.now()));
+    return true;
   }
 
   /// Meeting notes ride along with Mail when it has the user's name: same
@@ -317,7 +329,8 @@ class Board extends _$Board implements DeckBackend {
     if (_s.busy.contains('github')) return;
     _busy('github', true);
     try {
-      final f = await _github.fetchAll();
+      final cfg = await ref.read(settingsProvider.future);
+      final f = await _github.fetchAll(only: projectScope('github', cfg.providers['github'] ?? const ProviderConfig(), cfg.projects));
       final now = DateTime.now();
       final cards = [for (final m in f.records) classifyMr(m, f.me, now, provider: 'github')];
       await _save('github', Snapshot(state: SourceState.ok, message: '${cards.length} open', at: now, me: f.me, cards: cards));
@@ -332,7 +345,8 @@ class Board extends _$Board implements DeckBackend {
     if (_s.busy.contains('gitlab')) return;
     _busy('gitlab', true);
     try {
-      final f = await _gitlab.fetchAll();
+      final cfg = await ref.read(settingsProvider.future);
+      final f = await _gitlab.fetchAll(only: projectScope('gitlab', cfg.providers['gitlab'] ?? const ProviderConfig(), cfg.projects));
       final now = DateTime.now();
       final cards = [for (final m in f.records) classifyMr(m, f.me, now)];
       final gone = (_s.snapshots['gitlab']?.cards ?? const <DeckCard>[]).where((c) => c.lane == Lane.mine && !cards.any((n) => n.key == c.key));
