@@ -18,6 +18,73 @@ class TaskSpec {
 
 String _date(DateTime d) => d.toIso8601String().substring(0, 10);
 
+/// Threads a mail run judges before it stops between two days: a run killed
+/// at the 5 minute timeout loses all its work, and about 50 threads take 3.
+const mailBudget = 60;
+
+/// Days one mail run is given; the next run goes on from where it stopped.
+const _mailDaysPerRun = 7;
+
+/// The days a mail fetch searches, oldest first: from the day before the last
+/// check, so mail near midnight is found whatever time zone Gmail reads the
+/// dates in (the search skips what came before the check), up to today.
+/// Empty for the first fetch.
+List<DateTime> mailDays(DateTime? since, DateTime now) {
+  if (since == null) return const [];
+  final s = since.toLocal();
+  final today = DateTime(now.year, now.month, now.day);
+  return [for (var d = DateTime(s.year, s.month, s.day - 1); !d.isAfter(today); d = DateTime(d.year, d.month, d.day + 1)) d].take(_mailDaysPerRun).toList();
+}
+
+String _gmailDay(DateTime d) {
+  String day(DateTime d) => _date(d).replaceAll('-', '/');
+  return 'after:${day(d)} before:${day(DateTime(d.year, d.month, d.day + 1))}';
+}
+
+/// A day cut off at 50 threads is searched again in pieces: one per Gmail
+/// tab, and the mail in none of them, so together they cover the day.
+const _gmailTabs = {
+  'Primary': 'category:primary',
+  'Social': 'category:social',
+  'Promotions': 'category:promotions',
+  'Updates': 'category:updates',
+  'Forums': 'category:forums',
+  'No tab': '-category:primary -category:social -category:promotions -category:updates -category:forums',
+};
+
+/// A mail run's record of one search it ran, sent with the thread records.
+bool isSearchRecord(Map<String, Object?> r) => r['id'] == null && r['day'] != null;
+
+/// Where a mail run got to: the check time to save, and the searches Gmail
+/// cut off at 50 threads (the mail past them was not read). A day is done
+/// once its search came back; the run stops between days, so the next one
+/// starts at the first day not done. Never earlier than [since].
+({DateTime at, List<String> cut}) mailProgress(Map<String, Object?> input, List<Map<String, Object?>> records, DateTime? since, DateTime now) {
+  final days = [for (final d in input['days'] as List? ?? const []) (d as Map)['day'] as String];
+  if (days.isEmpty) return (at: now, cut: const []);
+  final searches = records.where(isSearchRecord).toList();
+  final done = {for (final r in searches) r['day']};
+  final split = {
+    for (final r in searches)
+      if (r['part'] != null) r['day'],
+  };
+  final cut = [
+    for (final r in searches)
+      if (((r['threads'] as num?) ?? 0) >= 50 && (r['part'] != null || !split.contains(r['day']))) '${r['day']}${r['part'] == null ? '' : ' (${r['part']})'}',
+  ];
+  final next = days.where((d) => !done.contains(d)).firstOrNull;
+  final DateTime at;
+  if (next != null) {
+    at = DateTime.parse(next);
+  } else if (days.last == _date(now)) {
+    at = now;
+  } else {
+    final last = DateTime.parse(days.last);
+    at = DateTime(last.year, last.month, last.day + 1);
+  }
+  return (at: since != null && since.isAfter(at) ? since : at, cut: cut);
+}
+
 /// [open] lists the message ids of asks still open on the board: Claude reads
 /// them again so one you answered later gets closed.
 /// [projects] lets Claude tag each Slack and mail record with the project
@@ -161,15 +228,19 @@ TaskSpec? taskFor(
       );
     case 'mail':
       final q = cfg.options['query'] ?? 'in:inbox';
-      // First fetch looks back two weeks, so the inbox gets sorted once.
-      final mailFrom = since ?? now.subtract(const Duration(days: 14));
+      // Gmail returns at most 50 threads per search, with no next page, and
+      // after:/before: take dates only. So the first fetch takes the newest 50,
+      // and later ones search day by day from the last check.
+      final days = mailDays(since, now);
       return TaskSpec(
         DeckTask(
           id: id,
           kind: 'fetch',
           instructions:
-              'Call the Gmail search_threads tool with the query in input.query and pageSize 50. While it returns a nextPageToken, call it '
-              'again with that pageToken. $newer'
+              '${days.isEmpty ? 'Call the Gmail search_threads tool once with the query in input.query and pageSize 50. ' : 'input.days lists the days to search, oldest first. For each day in turn, call the Gmail search_threads tool with '
+                        'its query and pageSize 50. When it returns 50 threads, Gmail cut the day off: call it again once per entry of input.split, '
+                        'with that entry added at the end of the day\'s query, and take the threads of all these calls. Before you start a new day, '
+                        'stop if you have already judged $mailBudget threads in this run: the next run goes on from there. '}$newer'
               'Judge each thread from its sender, subject and snippet only; call the Gmail get_thread tool only to check whether the user already replied to an ask, or when search_threads gave no date. '
               'Submit one record per thread: id (thread id), url (viewUrl, else "https://mail.google.com/mail/u/0/#all/<thread id>"), '
               'from (sender name), where (sender email address, lower case), at (ISO, from get_thread when search_threads gave no date), '
@@ -184,9 +255,19 @@ TaskSpec? taskFor(
               'it is "ask" only when it @-mentions the user, else "fyi". For such mail also set about: the Jira key ("AVPN-65"), '
               'or the project name and number of the merge request ("vpn-ios!955") or issue ("vpn-android#12"), as the mail shows them. '
               'For an ask, set about the same way when it is mainly about one Jira ticket or merge request; leave it out otherwise. '
-              '$onBoard${recheck}Submit all records in one call.',
+              '$onBoard$recheck'
+              '${days.isEmpty ? '' : 'Also submit one record per search you ran: day (as in input.days), part (the input.split key, only for a '
+                        'search of input.split), threads (how many threads it returned). '}'
+              'Submit all records in one call.',
           input: {
-            'query': '$q after:${_date(mailFrom).replaceAll('-', '/')}',
+            if (days.isEmpty)
+              'query': q
+            else ...{
+              'days': [
+                for (final d in days) {'day': _date(d), 'query': '$q ${_gmailDay(d)}'},
+              ],
+              'split': _gmailTabs,
+            },
             if (open.isNotEmpty) 'open': open,
             if (known.isNotEmpty) 'projects': known,
             if (boardCards.isNotEmpty) 'cards': boardCards,
@@ -288,16 +369,28 @@ const archiveProvider = 'mailarchive';
 /// Why Deck cannot read some of [records] sent for [provider], or null when
 /// every record reads. deck_submit returns it so Claude sends them again: a
 /// record dropped here would be lost, since the next fetch starts later.
-String? recordProblems(String provider, List<Map<String, Object?>> records) {
+/// [input] is the task's: a mail run given days must say which it searched.
+String? recordProblems(String provider, List<Map<String, Object?>> records, [Map<String, Object?> input = const {}]) {
   final Object? Function(Map<String, Object?>)? read = switch (provider) {
     'calendar' => EventRecord.fromJson,
     'jira' => IssueRecord.fromJson,
     'github' => MrRecord.fromJson,
     'notes' || archiveProvider || ticketProvider => null,
-    inboxProvider => (r) => r['id']! as String,
+    inboxProvider => (r) => [r['query']! as String, r['ids']! as List],
     _ => MessageRecord.fromJson,
   };
   if (read == null) return null;
+  if (provider == 'mail' && input['days'] != null) {
+    // Without them Deck cannot tell how far the run got, and would search the same days again.
+    if (!records.any(isSearchRecord)) {
+      return 'Nothing was saved: send deck_submit again with the thread records and one record per search you ran: day, part '
+          '(only for a search of input.split), threads.';
+    }
+    records = [
+      for (final r in records)
+        if (!isSearchRecord(r)) r,
+    ];
+  }
   final need = _required[provider] ?? _required['message']!;
   final bad = <String>[];
   for (final (i, r) in records.indexed) {
@@ -323,7 +416,7 @@ const _required = {
   'calendar': ['id', 'title', 'start', 'end'],
   'jira': ['key', 'summary', 'url', 'status', 'statusCategory', 'type'],
   'github': ['path', 'iid', 'title', 'url', 'author', 'role', 'createdAt', 'updatedAt'],
-  inboxProvider: ['id'],
+  inboxProvider: ['query', 'ids'],
   'message': ['id', 'url', 'at', 'title'],
 };
 
@@ -359,19 +452,47 @@ TaskSpec ticketTask(String project, String title, String body, DateTime now) => 
 /// Provider id of inbox listings. They are not a source: no snapshot.
 const inboxProvider = 'mailinbox';
 
-/// Lists the thread ids still in the inbox, so FYI and noise cards whose mail
-/// you archived in Gmail close too. Ids only: the session reads no mail text.
-TaskSpec inboxTask(DateTime now) => TaskSpec(
-  DeckTask(
-    id: '$inboxProvider-${now.millisecondsSinceEpoch}',
-    kind: 'fetch',
-    instructions:
-        'Call the Gmail search_threads tool with query "in:inbox", view THREAD_VIEW_IDS_ONLY and pageSize 50. While it returns a nextPageToken, call it '
-        'again with that pageToken. Submit one record per thread: id (thread id). Submit all records in one call, an empty list if the '
-        'inbox is empty. If a call fails, submit error instead.',
-  ),
-  const ['mcp__claude_ai_Gmail__search_threads'],
-);
+/// Senders per inbox search: few enough that most come back under 50 threads.
+const _sendersPerSearch = 10;
+
+/// Lists the inbox threads of the [senders] of open FYI and noise cards, so a
+/// card whose mail you archived in Gmail closes too. By sender, not the whole
+/// inbox: Gmail returns at most 50 threads per search, with no next page.
+/// Ids only: the session reads no mail text. Null when there is no sender.
+TaskSpec? inboxTask(Iterable<String> senders, DateTime now) {
+  final all = senders.toSet().toList()..sort();
+  if (all.isEmpty) return null;
+  return TaskSpec(
+    DeckTask(
+      id: '$inboxProvider-${now.millisecondsSinceEpoch}',
+      kind: 'fetch',
+      instructions:
+          'For each entry of input.searches call the Gmail search_threads tool with its query, view THREAD_VIEW_IDS_ONLY and pageSize 50. '
+          'Submit one record per search: query (exactly as given), ids (the thread ids it returned, an empty list if none). '
+          'Submit all records in one call. If a call fails, submit error instead.',
+      input: {
+        'searches': [
+          for (var i = 0; i < all.length; i += _sendersPerSearch)
+            if (all.sublist(i, (i + _sendersPerSearch).clamp(0, all.length)) case final chunk)
+              {'query': 'in:inbox {${chunk.map((s) => 'from:$s').join(' ')}}', 'senders': chunk},
+        ],
+      },
+    ),
+    const ['mcp__claude_ai_Gmail__search_threads'],
+  );
+}
+
+/// The thread ids still in the inbox per sender, from an inbox run. A search
+/// that came back with 50 threads may have been cut off: its senders are left
+/// out, so none of their cards closes.
+Map<String, Set<String>> inboxBySender(Map<String, Object?> input, List<Map<String, Object?>> records) {
+  final ids = {for (final r in records) r['query']: (r['ids']! as List).cast<String>().toSet()};
+  return {
+    for (final s in input['searches'] as List? ?? const [])
+      if (ids[(s as Map)['query']] case final found? when found.length < 50)
+        for (final sender in (s['senders'] as List).cast<String>()) sender: found,
+  };
+}
 
 TaskSpec archiveTask(List<String> threads, DateTime now) => TaskSpec(
   DeckTask(

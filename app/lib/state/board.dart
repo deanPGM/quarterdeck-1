@@ -177,7 +177,7 @@ class Board extends _$Board implements DeckBackend {
       } else if (!_s.busy.contains(e.key)) {
         final spec = taskFor(e.key, e.value, _s.snapshots[e.key]?.at, now, open: _openAsks(e.key), projects: cfg.projects, cards: _noteTargets());
         if (spec != null) viaClaude.add(spec);
-        if (e.key == 'mail') viaClaude.addAll([..._notesTask(e.value, now), inboxTask(now)]);
+        if (e.key == 'mail') viaClaude.addAll([..._notesTask(e.value, now), ?inboxTask(_inboxSenders(), now)]);
       }
     }
     unawaited(_refreshIssues(cfg));
@@ -202,7 +202,7 @@ class Board extends _$Board implements DeckBackend {
     await Future.wait([
       for (final s in [
         spec,
-        if (provider == 'mail') ...[..._notesTask(p, now), inboxTask(now)],
+        if (provider == 'mail') ...[..._notesTask(p, now), ?inboxTask(_inboxSenders(), now)],
       ])
         _runClaude([s], cfg),
     ]);
@@ -283,6 +283,13 @@ class Board extends _$Board implements DeckBackend {
     ]..sort((a, b) => (b.updatedAt ?? DateTime(0)).compareTo(a.updatedAt ?? DateTime(0)));
     return [for (final c in cards.take(20)) c.key.substring(provider.length + 1)];
   }
+
+  /// Senders of the open FYI and noise mail cards: the inbox listing checks
+  /// whether their mail is still in the inbox.
+  List<String> _inboxSenders() => [
+    for (final c in _s.snapshots['mail']?.cards ?? const <DeckCard>[])
+      if (!(_s.triage[c.key]?.done ?? false)) ?inboxSender(c),
+  ];
 
   Future<void> _close(Iterable<String> keys, String reason) async {
     final all = closeCards(_s.triage, keys, reason, at: DateTime.now());
@@ -611,14 +618,15 @@ class Board extends _$Board implements DeckBackend {
   String? submit(String taskId, List<Map<String, Object?>> records, String? error) {
     if (_tasks[taskId] case final s? when taskId.startsWith('slack-')) records = withSlackUrls(records, s.task.input);
     // Refused records keep the task open, so Claude can send them again.
-    final refused = error == null && _tasks.containsKey(taskId) ? recordProblems(taskId.split('-').first, records) : null;
+    final refused = error == null && _tasks.containsKey(taskId) ? recordProblems(taskId.split('-').first, records, _tasks[taskId]!.task.input) : null;
     if (refused == null && error != null && _tasks.containsKey(taskId)) _taskErrors[taskId] = error;
     if (refused == null) unawaited(_ingest(taskId, records, error));
     return refused;
   }
 
   Future<void> _ingest(String taskId, List<Map<String, Object?>> records, String? error) async {
-    if (_tasks.remove(taskId) == null) return;
+    final spec = _tasks.remove(taskId);
+    if (spec == null) return;
     final provider = taskId.split('-').first;
     if (provider == archiveProvider) return _archived(taskId, records, error);
     if (provider == ticketProvider) {
@@ -630,13 +638,20 @@ class Board extends _$Board implements DeckBackend {
       // A failed listing closes nothing: an empty list would close every card.
       if (error != null) return;
       final listedAt = DateTime.fromMillisecondsSinceEpoch(int.parse(taskId.split('-').last));
-      final inbox = {for (final r in records) r['id']! as String};
-      return _close(leftInbox(_s.snapshots['mail']?.cards ?? const [], inbox, listedAt), 'Archived in Gmail');
+      return _close(leftInbox(_s.snapshots['mail']?.cards ?? const [], inboxBySender(spec.task.input, records), listedAt), 'Archived in Gmail');
     }
     if (error != null) return _fail(provider, error);
     final cfg = await ref.read(settingsProvider.future);
     final now = DateTime.now();
     final old = _s.snapshots[provider] ?? const Snapshot();
+    // How far a mail run got, from the searches it lists beside the threads.
+    final progress = provider == 'mail' ? mailProgress(spec.task.input, records, old.at, now) : null;
+    if (progress != null) {
+      records = [
+        for (final r in records)
+          if (!isSearchRecord(r)) r,
+      ];
+    }
     // Each record is read alone: one Claude got wrong is skipped, not the batch.
     var bad = 0;
     List<T> each<T>(T Function(Map<String, Object?>) read) {
@@ -684,7 +699,14 @@ class Board extends _$Board implements DeckBackend {
       // the same window again instead of losing them.
       await _save(
         provider,
-        Snapshot(state: SourceState.ok, message: '${cards.length} open${skipped()}', at: bad == 0 ? now : old.at, me: old.me, cards: cards),
+        Snapshot(
+          state: SourceState.ok,
+          message:
+              '${cards.length} open${skipped()}${progress == null || progress.cut.isEmpty ? '' : ', over 50 threads on ${progress.cut.join(', ')}: some were not read'}',
+          at: bad == 0 ? progress?.at ?? now : old.at,
+          me: old.me,
+          cards: cards,
+        ),
       );
     } catch (e) {
       await _fail(provider, 'Claude sent records Deck could not read: $e');

@@ -139,6 +139,18 @@ made by hand). Archiving runs as its own Claude session whose only tool is
 `unlabel_thread` and whose input is ids from Deck: it reads no mail text, so a
 mail cannot steer it.
 
+**Gmail is read day by day (2026-11-25).** The Gmail connector returns at
+most 50 threads per search and no next page, and `after:`/`before:` take
+dates, not times. So the first fetch takes the newest 50, and later ones
+search each day from the day before the last check, oldest first. A run stops
+between days after about 60 threads (the 5 minute timeout loses a whole run)
+and saves the check time at the first day it did not search, so the next run
+goes on and no day is dropped. A day that hits 50 is searched again per Gmail
+tab plus the mail in none; a piece that still hits 50 is named in the source
+status. The inbox listing that closes archived FYI and noise cards searches
+by the cards' senders, ten per search, ids only; a search that hits 50 closes
+nothing for its senders.
+
 **Code review in Deck (2026-10-16).** Skim (a local browser review UI with
 its own Node server and MCP) moves into Deck: one app for the board, the
 project map and the review, no second server and no browser tab. The core is

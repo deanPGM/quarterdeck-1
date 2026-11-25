@@ -79,11 +79,11 @@ void main() {
   });
 
   group('leftInbox', () {
-    DeckCard mail(String id, String kind, {List<String>? threads, DateTime? at}) => DeckCard(
+    DeckCard mail(String id, String kind, {List<String>? threads, DateTime? at, String from = 'news@acme.com'}) => DeckCard(
       key: 'mail:$id',
       provider: 'mail',
       lane: Lane.reply,
-      ref: 'x@y.com',
+      ref: from,
       url: 'https://mail.google.com',
       title: id,
       next: '',
@@ -91,6 +91,7 @@ void main() {
       score: 30,
       kind: kind,
       updatedAt: at ?? _now,
+      channel: from,
       threads: threads ?? [id],
     );
     final later = _now.add(const Duration(hours: 1));
@@ -102,24 +103,41 @@ void main() {
         mail('c', 'ask'),
         mail('n', 'noise', threads: ['n1', 'n2']),
       ];
-      expect(leftInbox(cards, {'b'}, later), ['mail:a', 'mail:n']);
+      expect(
+        leftInbox(cards, {
+          'news@acme.com': {'b'},
+        }, later),
+        ['mail:a', 'mail:n'],
+      );
     });
 
     test('keeps a noise group while one of its mails is still in the inbox', () {
+      final group = mail('n', 'noise', threads: ['n1', 'n2']);
       expect(
         leftInbox(
-          [
-            mail('n', 'noise', threads: ['n1', 'n2']),
-          ],
-          {'n2'},
+          [group],
+          {
+            'news@acme.com': {'n2'},
+          },
           later,
         ),
         isEmpty,
       );
     });
 
+    test('keeps the cards of a sender the listing left out', () {
+      expect(leftInbox([mail('a', 'fyi', from: 'sam@acme.com')], {'news@acme.com': {}}, later), isEmpty);
+    });
+
     test('keeps mail that came in after the inbox was listed', () {
-      expect(leftInbox([mail('a', 'fyi', at: later)], {}, _now), isEmpty);
+      expect(leftInbox([mail('a', 'fyi', at: later)], {'news@acme.com': {}}, _now), isEmpty);
+    });
+
+    test('checks only FYI and noise mail with a sender email', () {
+      expect(inboxSender(mail('a', 'fyi', from: ' News@Acme.com')), 'news@acme.com');
+      expect(inboxSender(mail('a', 'ask')), isNull);
+      expect(inboxSender(mail('a', 'fyi', from: 'Acme News')), isNull);
+      expect(inboxSender(mail('a', 'fyi', from: 'x@acme.com}-in:inbox{')), isNull);
     });
   });
 }

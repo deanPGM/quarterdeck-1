@@ -145,13 +145,25 @@ DeckCard noiseCard(MessageRecord m, DeckCard? group) {
   );
 }
 
-/// Keys of the FYI and noise mail cards whose threads all left the [inbox]
-/// (you archived them in Gmail). Asks stay: archiving does not answer them.
-/// Only cards last updated before [listedAt], so mail that came in after the
-/// inbox was listed is not closed.
-List<String> leftInbox(Iterable<DeckCard> cards, Set<String> inbox, DateTime listedAt) => [
+/// The sender email of a FYI or noise mail card, whose inbox Deck checks to
+/// close it once archived. Null for other cards, or with no email.
+String? inboxSender(DeckCard c) {
+  if (c.provider != 'mail' || (c.kind != 'fyi' && c.kind != 'noise') || c.threads.isEmpty) return null;
+  final email = c.channel?.trim().toLowerCase();
+  // It goes into a Gmail query: a sender a mail made up could not change it.
+  return email != null && _email.hasMatch(email) ? email : null;
+}
+
+final _email = RegExp(r'^[a-z0-9._%+\-]+@[a-z0-9.\-]+$');
+
+/// Keys of the FYI and noise mail cards whose threads all left the inbox
+/// (you archived them in Gmail), from the thread ids still in it [bySender].
+/// Asks stay: archiving does not answer them. A card whose sender was not
+/// listed stays too. Only cards last updated before [listedAt], so mail that
+/// came in after the inbox was listed is not closed.
+List<String> leftInbox(Iterable<DeckCard> cards, Map<String, Set<String>> bySender, DateTime listedAt) => [
   for (final c in cards)
-    if ((c.kind == 'fyi' || c.kind == 'noise') && c.threads.isNotEmpty && !c.threads.any(inbox.contains) && (c.updatedAt?.isBefore(listedAt) ?? true)) c.key,
+    if (bySender[inboxSender(c)] case final inbox? when !c.threads.any(inbox.contains) && (c.updatedAt?.isBefore(listedAt) ?? true)) c.key,
 ];
 
 /// Merges fresh message records into the open cards. A card whose record now
