@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:local_notifier/local_notifier.dart';
 
+import 'state/auto_refresh.dart';
 import 'state/mcp_host.dart';
 import 'state/ui_memory.dart';
 import 'ui/board/board_screen.dart';
@@ -72,8 +73,9 @@ class _DeckAppState extends ConsumerState<DeckApp> {
   @override
   void initState() {
     super.initState();
-    // Deck can open on any screen, and background sessions need the server.
+    // Deck can open on any screen; background sessions need the server, the board its refresh.
     ref.read(mcpHostProvider);
+    ref.read(autoRefreshProvider);
     _router.routerDelegate.addListener(() => _memory.setLocation(_router.routerDelegate.currentConfiguration.uri));
   }
 
