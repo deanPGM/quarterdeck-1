@@ -136,7 +136,7 @@ const sampleConfig = DeckConfig(
   providers: {
     'gitlab': ProviderConfig(access: Access.cli),
     'jira': ProviderConfig(),
-    'slack': ProviderConfig(options: {'queries': '@Sam'}),
+    'slack': ProviderConfig(options: {'queries': 'in:#acme-releases'}),
     'calendar': ProviderConfig(),
     'mail': ProviderConfig(options: {'notesName': 'Sam Rivera'}),
   },

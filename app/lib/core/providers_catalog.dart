@@ -59,7 +59,7 @@ const providerCatalog = <ProviderInfo>[
     name: 'Slack',
     description: 'DMs and mentions that ask something of you. Claude judges each one.',
     access: [Access.claude],
-    options: {'queries': 'Extra search queries (comma separated)', 'workspace': 'Workspace, as in <workspace>.slack.com (for message links)'},
+    options: {'queries': 'Extra search filters, like in:#channel (comma separated; DMs and mentions are already searched)', 'workspace': 'Workspace, as in <workspace>.slack.com (for message links)'},
   ),
   ProviderInfo(
     id: 'calendar',

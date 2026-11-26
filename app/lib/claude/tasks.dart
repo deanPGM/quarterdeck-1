@@ -174,13 +174,17 @@ TaskSpec? taskFor(
     case 'slack':
       final extra = (cfg.options['queries'] ?? '').split(',').map((q) => q.trim()).where((q) => q.isNotEmpty);
       final workspace = slackWorkspace(cfg.options['workspace']);
+      final after = 'after:${_date(from.subtract(const Duration(days: 1)))}';
       return TaskSpec(
         DeckTask(
           id: id,
           kind: 'fetch',
           instructions:
-              'Run slack_search_public_and_private once per query in input.queries. Keep only messages written by a person other than '
-              'the user (no bots) and aimed at the user (a DM to them, or a mention of them)'
+              'Run slack_search_public_and_private once per query in input.queries, the query as filters with no keywords, '
+              'response_format "detailed" and include_context false (only detailed gives the channel id and ts). Then run it once more '
+              'the same way with filters input.mentions and keywords ["<@ID>"], ID being the current user\'s id given in that tool\'s '
+              'description: this one finds the mentions (a mention in filters is ignored). Keep only messages written by a person other than '
+              'the user (no bots) and aimed at the user (a DM to them, or a message whose text mentions them as <@their id>)'
               '${channels.isEmpty ? '' : ', plus, from the "in:" queries, the thread starts that report a bug, request a change or ask '
                         'the team a question about the project, still open (not answered in full, not said fixed); skip chatter, '
                         'news, alerts and messages that ask nothing'}. One record per message, even when two queries return it. '
@@ -210,11 +214,11 @@ TaskSpec? taskFor(
             'since': ?seen,
             // Deck builds each record's url: the Slack tools return no permalink.
             'workspace': ?workspace,
-            // "to:me" finds DMs. Mentions need the user's name, set in Settings (extra queries).
+            // "to:me" finds DMs. Slack ignores a mention in filters ("@name" or "<@id>" there returns
+            // every recent message), so mentions get their own search with the id as keyword.
             // Slack's after: leaves its own day out: after:<today> finds nothing.
-            'queries': [
-              for (final q in ['to:me', ...extra, for (final c in channels) 'in:$c']) '$q after:${_date(from.subtract(const Duration(days: 1)))}',
-            ],
+            'queries': [for (final q in ['to:me', ...extra, for (final c in channels) 'in:$c']) '$q $after'],
+            'mentions': after,
           },
         ),
         [

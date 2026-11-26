@@ -38,6 +38,9 @@ void main() {
     final s = taskFor('slack', const ProviderConfig(), null, now, projects: ps, cards: const [(key: 'jira:OM-7', ref: 'OM-7', title: 'Purchase fails')]);
     final t = s!.task;
     expect(t.input['queries'], ['to:me after:2026-10-30', 'in:#vpn-apps after:2026-10-30', 'in:#abp-vpn after:2026-10-30']);
+    // Mentions: the user's id as keyword, since Slack ignores a mention in filters.
+    expect(t.input['mentions'], 'after:2026-10-30');
+    expect(t.instructions, contains('keywords ["<@ID>"]'));
     expect(t.input['cards'], [
       {'ref': 'OM-7', 'title': 'Purchase fails'},
     ]);
